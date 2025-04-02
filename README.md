@@ -16,7 +16,7 @@ Sistema para optimizar la asignación de empleados a turnos de trabajo minimizan
 
 ## Estructura del Proyecto
 
-```
+```bash
 mh_optimizacion_turnos/
 ├── application/                # Capa de aplicación
 │   └── ports/                  # Puertos de entrada y salida
@@ -90,6 +90,7 @@ solution_grasp = assignment_service.generate_schedule(algorithm="grasp")
 ### Ejemplo completo
 
 El archivo `example.py` incluido en el repositorio contiene un ejemplo completo que:
+
 1. Crea datos de prueba aleatorios (empleados y turnos)
 2. Ejecuta los tres algoritmos metaheurísticos
 3. Compara resultados (tiempo de ejecución, costo, violaciones)
@@ -106,6 +107,7 @@ python example.py
 Cada algoritmo puede ser configurado con diferentes parámetros:
 
 ### Algoritmo Genético
+
 ```python
 config = {
     "population_size": 50,      # Tamaño de población 
@@ -118,6 +120,7 @@ config = {
 ```
 
 ### Búsqueda Tabú
+
 ```python
 config = {
     "max_iterations": 1000,     # Número máximo de iteraciones
@@ -128,6 +131,7 @@ config = {
 ```
 
 ### GRASP
+
 ```python
 config = {
     "max_iterations": 100,      # Número máximo de iteraciones
