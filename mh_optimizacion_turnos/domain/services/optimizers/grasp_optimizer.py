@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class GraspOptimizer(OptimizerStrategy):
-    """GRASP (Greedy Randomized Adaptive Search Procedure) implementation for shift optimization."""
+    """Implementación de GRASP (Greedy Randomized Adaptive Search Procedure) para la optimización de turnos."""
     
     def get_name(self) -> str:
         return "GRASP Optimizer"
@@ -31,42 +31,42 @@ class GraspOptimizer(OptimizerStrategy):
                 employees: List[Employee], 
                 shifts: List[Shift],
                 config: Dict[str, Any] = None) -> Solution:
-        """Optimize shift assignments using GRASP."""
+        """Optimiza la asignación de turnos usando GRASP."""
         if config is None:
             config = self.get_default_config()
         
-        # Extract configuration parameters
+        # Extraer parámetros de configuración
         max_iterations = config.get("max_iterations", 100)
         alpha = config.get("alpha", 0.3)
         local_search_iterations = config.get("local_search_iterations", 50)
         
-        logger.info(f"Starting GRASP optimization with {max_iterations} iterations and alpha={alpha}")
+        logger.info(f"Iniciando optimización GRASP con {max_iterations} iteraciones y alpha={alpha}")
         
         best_solution = None
         best_fitness = float('-inf')
         
-        # Main GRASP loop
+        # Ciclo principal de GRASP
         for iteration in range(max_iterations):
-            # Phase 1: Construction - Greedy randomized construction of a solution
+            # Fase 1: Construcción - Construcción greedy aleatorizada de una solución
             solution = self._greedy_randomized_construction(employees, shifts, alpha)
             
-            # Phase 2: Local Search - Improve the solution using local search
+            # Fase 2: Búsqueda Local - Mejorar la solución usando búsqueda local
             solution = self._local_search(solution, employees, shifts, local_search_iterations)
             
-            # Evaluate solution
+            # Evaluar solución
             fitness = self._calculate_fitness(solution, employees, shifts)
             
-            # Update best solution if improved
+            # Actualizar mejor solución si ha mejorado
             if best_solution is None or fitness > best_fitness:
                 best_solution = solution.clone()
                 best_fitness = fitness
-                logger.info(f"Iteration {iteration}: Found new best solution with fitness {best_fitness:.4f}")
+                logger.info(f"Iteración {iteration}: Se encontró nueva mejor solución con fitness {best_fitness:.4f}")
             
-            # Log progress periodically
+            # Registrar progreso periódicamente
             if iteration % 10 == 0 and iteration > 0:
-                logger.info(f"Completed {iteration}/{max_iterations} iterations. Best fitness: {best_fitness:.4f}")
+                logger.info(f"Completadas {iteration}/{max_iterations} iteraciones. Mejor fitness: {best_fitness:.4f}")
         
-        logger.info(f"GRASP optimization complete. Best solution fitness: {best_fitness:.4f}")
+        logger.info(f"Optimización GRASP completada. Fitness de la mejor solución: {best_fitness:.4f}")
         
         return best_solution
     
@@ -74,11 +74,11 @@ class GraspOptimizer(OptimizerStrategy):
         """Construye una solución de manera greedy pero con componente aleatorio."""
         solution = Solution()
         
-        # Sort shifts by priority (descending)
+        # Ordenar turnos por prioridad (descendente)
         sorted_shifts = sorted(shifts, key=lambda s: s.priority, reverse=True)
         
         for shift in sorted_shifts:
-            # Find qualified employees for this shift
+            # Encontrar empleados calificados para este turno
             qualified_employees = [
                 e for e in employees 
                 if e.is_available(shift.day, shift.name) and shift.required_skills.issubset(e.skills)
@@ -87,23 +87,23 @@ class GraspOptimizer(OptimizerStrategy):
             if not qualified_employees:
                 continue
                 
-            # Sort employees by cost (ascending) - lower cost is better
+            # Ordenar empleados por costo (ascendente) - menor costo es mejor
             sorted_employees = sorted(qualified_employees, key=lambda e: e.hourly_cost)
             
-            # Determine RCL (Restricted Candidate List) size
+            # Determinar el tamaño de la RCL (Lista Restringida de Candidatos)
             rcl_size = max(1, int(alpha * len(sorted_employees)))
             
-            # Assign required number of employees from RCL
+            # Asignar el número requerido de empleados desde la RCL
             needed_employees = min(shift.required_employees, len(qualified_employees))
             for _ in range(needed_employees):
-                # Choose randomly from the best candidates (RCL)
+                # Elegir aleatoriamente de los mejores candidatos (RCL)
                 candidate_pool = sorted_employees[:rcl_size]
                 if not candidate_pool:
                     break
                     
                 selected_employee = random.choice(candidate_pool)
                 
-                # Add assignment to solution
+                # Añadir asignación a la solución
                 assignment = Assignment(
                     employee_id=selected_employee.id,
                     shift_id=shift.id,
@@ -111,7 +111,7 @@ class GraspOptimizer(OptimizerStrategy):
                 )
                 solution.add_assignment(assignment)
                 
-                # Remove selected employee from candidates to avoid double assignment
+                # Eliminar el empleado seleccionado de los candidatos para evitar doble asignación
                 sorted_employees.remove(selected_employee)
         
         solution.calculate_total_cost()
@@ -129,7 +129,7 @@ class GraspOptimizer(OptimizerStrategy):
         for iteration in range(max_iterations):
             improved = False
             
-            # Try to improve by replacing employees
+            # Intentar mejorar reemplazando empleados
             for i, assignment in enumerate(current_solution.assignments):
                 shift = shift_dict.get(assignment.shift_id)
                 current_employee_id = assignment.employee_id
@@ -137,7 +137,7 @@ class GraspOptimizer(OptimizerStrategy):
                 if not shift:
                     continue
                     
-                # Find potential replacements
+                # Encontrar reemplazos potenciales
                 potential_replacements = [
                     e for e in employees 
                     if e.id != current_employee_id and
@@ -148,14 +148,14 @@ class GraspOptimizer(OptimizerStrategy):
                 if not potential_replacements:
                     continue
                 
-                # Try each potential replacement
+                # Probar cada reemplazo potencial
                 for new_employee in potential_replacements:
-                    # Create a new solution with this replacement
+                    # Crear una nueva solución con este reemplazo
                     new_solution = current_solution.clone()
                     
-                    # Replace the assignment
+                    # Reemplazar la asignación
                     for j, a in enumerate(new_solution.assignments):
-                        if j == i:  # This is the assignment we want to replace
+                        if j == i:  # Esta es la asignación que queremos reemplazar
                             new_solution.assignments[j] = Assignment(
                                 employee_id=new_employee.id,
                                 shift_id=shift.id,
@@ -163,10 +163,10 @@ class GraspOptimizer(OptimizerStrategy):
                             )
                             break
                     
-                    # Calculate fitness of new solution
+                    # Calcular fitness de la nueva solución
                     new_fitness = self._calculate_fitness(new_solution, employees, shifts)
                     
-                    # Accept if improved
+                    # Aceptar si mejora
                     if new_fitness > current_fitness:
                         current_solution = new_solution
                         current_fitness = new_fitness
@@ -176,14 +176,14 @@ class GraspOptimizer(OptimizerStrategy):
                 if improved:
                     break
             
-            # If no improvement was found by replacement, try adding new assignments
+            # Si no se encontró mejora mediante reemplazo, intentar añadir nuevas asignaciones
             if not improved:
                 for shift in shifts:
-                    # Check if this shift needs more employees
+                    # Verificar si este turno necesita más empleados
                     assigned_count = len([a for a in current_solution.assignments if a.shift_id == shift.id])
                     
                     if assigned_count < shift.required_employees:
-                        # Find employees not already assigned to this shift
+                        # Encontrar empleados que no estén ya asignados a este turno
                         current_assigned_ids = set(
                             a.employee_id for a in current_solution.assignments if a.shift_id == shift.id
                         )
@@ -196,10 +196,10 @@ class GraspOptimizer(OptimizerStrategy):
                         ]
                         
                         if available_employees:
-                            # Sort by cost (ascending)
+                            # Ordenar por costo (ascendente)
                             sorted_employees = sorted(available_employees, key=lambda e: e.hourly_cost)
                             
-                            # Try the best candidate
+                            # Probar el mejor candidato
                             if sorted_employees:
                                 new_solution = current_solution.clone()
                                 new_assignment = Assignment(
@@ -209,10 +209,10 @@ class GraspOptimizer(OptimizerStrategy):
                                 )
                                 new_solution.add_assignment(new_assignment)
                                 
-                                # Calculate fitness of new solution
+                                # Calcular fitness de la nueva solución
                                 new_fitness = self._calculate_fitness(new_solution, employees, shifts)
                                 
-                                # Accept if improved
+                                # Aceptar si mejora
                                 if new_fitness > current_fitness:
                                     current_solution = new_solution
                                     current_fitness = new_fitness
@@ -222,14 +222,14 @@ class GraspOptimizer(OptimizerStrategy):
                 if improved:
                     continue
             
-            # If no improvement was found, stop local search
+            # Si no se encontró ninguna mejora, detener la búsqueda local
             if not improved:
                 break
         
         return current_solution
     
     def _calculate_fitness(self, solution: Solution, employees: List[Employee], shifts: List[Shift]) -> float:
-        """Calculate fitness score for a solution."""
+        """Calcula la puntuación de fitness para una solución."""
         employee_dict = {e.id: e for e in employees}
         shift_dict = {s.id: s for s in shifts}
         
@@ -279,12 +279,12 @@ class GraspOptimizer(OptimizerStrategy):
                 employee = employee_dict[emp_id]
                 shift = shift_dict[shift_id]
                 
-                # Track hours
+                # Registrar horas
                 if emp_id not in employee_hours:
                     employee_hours[emp_id] = 0
                 employee_hours[emp_id] += shift.duration_hours
                 
-                # Track days
+                # Registrar días
                 if emp_id not in employee_days:
                     employee_days[emp_id] = set()
                 employee_days[emp_id].add(shift.day)

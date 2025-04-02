@@ -8,10 +8,10 @@ from ..models.shift import Shift
 
 
 class OptimizerStrategy(ABC):
-    """Strategy interface for optimization algorithms.
+    """Interfaz de estrategia para algoritmos de optimización.
     
-    This follows the Strategy pattern to allow interchangeable metaheuristic algorithms.
-    Each algorithm implementation must follow this interface.
+    Esto sigue el patrón Strategy para permitir algoritmos metaheurísticos intercambiables.
+    Cada implementación de algoritmo debe seguir esta interfaz.
     """
     
     @abstractmethod
@@ -19,24 +19,24 @@ class OptimizerStrategy(ABC):
                 employees: List[Employee], 
                 shifts: List[Shift],
                 config: Dict[str, Any] = None) -> Solution:
-        """Optimize shift assignments based on the given employees and shifts.
+        """Optimizar asignaciones de turnos basado en los empleados y turnos dados.
         
         Args:
-            employees: List of available employees
-            shifts: List of shifts to be assigned
-            config: Algorithm-specific configuration parameters
+            employees: Lista de empleados disponibles
+            shifts: Lista de turnos a ser asignados
+            config: Parámetros de configuración específicos del algoritmo
             
         Returns:
-            A Solution object containing the optimized assignments
+            Un objeto Solution que contiene las asignaciones optimizadas
         """
         pass
     
     @abstractmethod
     def get_name(self) -> str:
-        """Get the name of the optimization strategy."""
+        """Obtener el nombre de la estrategia de optimización."""
         pass
     
     @abstractmethod
     def get_default_config(self) -> Dict[str, Any]:
-        """Get the default configuration parameters for this algorithm."""
+        """Obtener los parámetros de configuración predeterminados para este algoritmo."""
         pass

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class TabuSearchOptimizer(OptimizerStrategy):
-    """Tabu Search implementation for shift optimization."""
+    """Implementación de Búsqueda Tabú para la optimización de turnos."""
     
     def get_name(self) -> str:
         return "Tabu Search Optimizer"
@@ -32,22 +32,22 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 employees: List[Employee], 
                 shifts: List[Shift],
                 config: Dict[str, Any] = None) -> Solution:
-        """Optimize shift assignments using Tabu Search."""
+        """Optimiza la asignación de turnos usando Búsqueda Tabú."""
         if config is None:
             config = self.get_default_config()
         
-        # Extract configuration parameters
+        # Extraer parámetros de configuración
         max_iterations = config.get("max_iterations", 1000)
         tabu_tenure = config.get("tabu_tenure", 20)
         neighborhood_size = config.get("neighborhood_size", 30)
         max_no_improve = config.get("max_iterations_without_improvement", 200)
         
-        logger.info(f"Starting tabu search optimization with max {max_iterations} iterations")
+        logger.info(f"Iniciando optimización con búsqueda tabú con máximo {max_iterations} iteraciones")
         
-        # Initialize tabu list as a fixed-size deque
+        # Inicializar lista tabú como una cola de tamaño fijo
         tabu_list = deque(maxlen=tabu_tenure)
         
-        # Create initial solution
+        # Crear solución inicial
         current_solution = self._create_initial_solution(employees, shifts)
         best_solution = current_solution.clone()
         
@@ -57,86 +57,86 @@ class TabuSearchOptimizer(OptimizerStrategy):
         iterations_without_improvement = 0
         
         for iteration in range(max_iterations):
-            # Generate neighborhood
+            # Generar vecindario
             neighbors = self._generate_neighborhood(current_solution, employees, shifts, neighborhood_size)
             
-            # Find best non-tabu neighbor
+            # Encontrar el mejor vecino no tabú
             best_neighbor = None
             best_neighbor_fitness = float('-inf')
             best_move = None
             
             for neighbor, move in neighbors:
-                # Check if move is tabu
+                # Verificar si el movimiento es tabú
                 if move in tabu_list:
                     continue
                     
                 neighbor_fitness = self._calculate_fitness(neighbor, employees, shifts)
                 
-                # Accept if better than the best found so far
+                # Aceptar si es mejor que el mejor encontrado hasta ahora
                 if neighbor_fitness > best_neighbor_fitness:
                     best_neighbor = neighbor
                     best_neighbor_fitness = neighbor_fitness
                     best_move = move
                 
-                # Aspiration criterion: accept if better than the global best, even if tabu
+                # Criterio de aspiración: aceptar si es mejor que el mejor global, incluso si es tabú
                 if neighbor_fitness > best_fitness and move in tabu_list:
                     best_neighbor = neighbor
                     best_neighbor_fitness = neighbor_fitness
                     best_move = move
                     break
             
-            # If no valid moves found
+            # Si no se encuentran movimientos válidos
             if best_neighbor is None:
-                logger.info(f"No valid moves found at iteration {iteration}")
+                logger.info(f"No se encontraron movimientos válidos en la iteración {iteration}")
                 break
                 
-            # Move to the best neighbor
+            # Moverse al mejor vecino
             current_solution = best_neighbor
             current_fitness = best_neighbor_fitness
             
-            # Add the move to the tabu list
+            # Añadir el movimiento a la lista tabú
             tabu_list.append(best_move)
             
-            # Update best solution if improved
+            # Actualizar mejor solución si ha mejorado
             if current_fitness > best_fitness:
                 best_solution = current_solution.clone()
                 best_fitness = current_fitness
                 iterations_without_improvement = 0
-                logger.info(f"Iteration {iteration}: Found new best solution with fitness {best_fitness:.4f}")
+                logger.info(f"Iteración {iteration}: Se encontró nueva mejor solución con fitness {best_fitness:.4f}")
             else:
                 iterations_without_improvement += 1
             
-            # Log progress
+            # Registrar progreso
             if iteration % 10 == 0:
-                logger.info(f"Iteration {iteration}: Current fitness = {current_fitness:.4f}, Best fitness = {best_fitness:.4f}")
+                logger.info(f"Iteración {iteration}: Fitness actual = {current_fitness:.4f}, Mejor fitness = {best_fitness:.4f}")
             
-            # Stop if no improvement for a while
+            # Detener si no hay mejora durante un tiempo
             if iterations_without_improvement >= max_no_improve:
-                logger.info(f"Stopping early - no improvement for {max_no_improve} iterations")
+                logger.info(f"Detención temprana - no hay mejora durante {max_no_improve} iteraciones")
                 break
         
-        logger.info(f"Tabu search complete after {iteration+1} iterations. Best fitness: {best_fitness:.4f}")
+        logger.info(f"Búsqueda tabú completada después de {iteration+1} iteraciones. Mejor fitness: {best_fitness:.4f}")
         
         return best_solution
     
     def _create_initial_solution(self, employees: List[Employee], shifts: List[Shift]) -> Solution:
-        """Create an initial solution using a greedy approach."""
+        """Crear una solución inicial utilizando un enfoque voraz."""
         solution = Solution()
         
-        # Sort shifts by priority (descending)
+        # Ordenar turnos por prioridad (descendente)
         sorted_shifts = sorted(shifts, key=lambda s: s.priority, reverse=True)
         
         for shift in sorted_shifts:
-            # Find qualified employees for this shift
+            # Encontrar empleados calificados para este turno
             qualified_employees = [
                 e for e in employees 
                 if e.is_available(shift.day, shift.name) and shift.required_skills.issubset(e.skills)
             ]
             
-            # Sort by hourly cost (ascending)
+            # Ordenar por costo por hora (ascendente)
             qualified_employees.sort(key=lambda e: e.hourly_cost)
             
-            # Assign required number of employees
+            # Asignar el número requerido de empleados
             needed = min(shift.required_employees, len(qualified_employees))
             for i in range(needed):
                 employee = qualified_employees[i]
@@ -153,25 +153,25 @@ class TabuSearchOptimizer(OptimizerStrategy):
     def _generate_neighborhood(self, current_solution: Solution, 
                              employees: List[Employee], shifts: List[Shift], 
                              neighborhood_size: int) -> List[Tuple[Solution, Tuple]]:
-        """Generate neighborhood solutions by applying different moves."""
+        """Generar soluciones vecinas aplicando diferentes movimientos."""
         neighbors = []
         shift_dict = {s.id: s for s in shifts}
         
-        # Group assignments by shift
+        # Agrupar asignaciones por turno
         shift_assignments = {}
         for a in current_solution.assignments:
             if a.shift_id not in shift_assignments:
                 shift_assignments[a.shift_id] = []
             shift_assignments[a.shift_id].append(a)
         
-        # Strategy 1: Replace Employee
+        # Estrategia 1: Reemplazar Empleado
         for i in range(min(neighborhood_size // 2, len(current_solution.assignments))):
-            # Pick random assignment to replace
+            # Elegir asignación aleatoria para reemplazar
             assignment = random.choice(current_solution.assignments)
             shift = shift_dict.get(assignment.shift_id)
             
             if shift:
-                # Find potential replacements
+                # Encontrar posibles reemplazos
                 available_employees = [
                     e for e in employees 
                     if e.id != assignment.employee_id and
@@ -182,10 +182,10 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 if available_employees:
                     new_employee = random.choice(available_employees)
                     
-                    # Create new solution with this replacement
+                    # Crear nueva solución con este reemplazo
                     new_solution = current_solution.clone()
                     
-                    # Find and replace the assignment
+                    # Encontrar y reemplazar la asignación
                     for j, a in enumerate(new_solution.assignments):
                         if a.employee_id == assignment.employee_id and a.shift_id == assignment.shift_id:
                             new_solution.assignments[j] = Assignment(
@@ -195,20 +195,20 @@ class TabuSearchOptimizer(OptimizerStrategy):
                             )
                             break
                     
-                    # Generate a tuple that uniquely identifies this move: (original_emp_id, shift_id, new_emp_id)
+                    # Generar una tupla que identifica únicamente este movimiento: (original_emp_id, shift_id, new_emp_id)
                     move = (assignment.employee_id, assignment.shift_id, new_employee.id)
                     neighbors.append((new_solution, move))
         
-        # Strategy 2: Swap Assignments
+        # Estrategia 2: Intercambiar Asignaciones
         for i in range(min(neighborhood_size // 2, len(shift_assignments))):
             if len(shift_assignments) < 2:
                 continue
                 
-            # Pick two different shifts
+            # Elegir dos turnos diferentes
             shift_ids = random.sample(list(shift_assignments.keys()), 2)
             
             if len(shift_assignments[shift_ids[0]]) > 0 and len(shift_assignments[shift_ids[1]]) > 0:
-                # Pick one assignment from each shift
+                # Elegir una asignación de cada turno
                 assignment1 = random.choice(shift_assignments[shift_ids[0]])
                 assignment2 = random.choice(shift_assignments[shift_ids[1]])
                 
@@ -219,17 +219,17 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 employee1 = employee_dict.get(assignment1.employee_id)
                 employee2 = employee_dict.get(assignment2.employee_id)
                 
-                # Check if swap is valid
+                # Verificar si el intercambio es válido
                 if (employee1 and employee2 and shift1 and shift2 and
                     employee1.is_available(shift2.day, shift2.name) and
                     employee2.is_available(shift1.day, shift1.name) and
                     shift1.required_skills.issubset(employee2.skills) and
                     shift2.required_skills.issubset(employee1.skills)):
                     
-                    # Create new solution with the swap
+                    # Crear nueva solución con el intercambio
                     new_solution = current_solution.clone()
                     
-                    # Find and replace the assignments
+                    # Encontrar y reemplazar las asignaciones
                     for j, a in enumerate(new_solution.assignments):
                         if a.employee_id == assignment1.employee_id and a.shift_id == assignment1.shift_id:
                             new_solution.assignments[j] = Assignment(
@@ -244,24 +244,24 @@ class TabuSearchOptimizer(OptimizerStrategy):
                                 cost=employee1.hourly_cost * shift2.duration_hours
                             )
                     
-                    # Generate a tuple that uniquely identifies this swap:
+                    # Generar una tupla que identifica únicamente este intercambio:
                     # ((emp1_id, shift1_id), (emp2_id, shift2_id))
                     move = ((assignment1.employee_id, assignment1.shift_id),
                            (assignment2.employee_id, assignment2.shift_id))
                     
                     neighbors.append((new_solution, move))
         
-        # If we couldn't generate enough neighbors, add some random solutions
+        # Si no pudimos generar suficientes vecinos, añadir algunas soluciones aleatorias
         while len(neighbors) < neighborhood_size:
             new_solution = self._create_initial_solution(employees, shifts)
-            # Use a unique identifier for this random solution
+            # Usar un identificador único para esta solución aleatoria
             move = ("random", random.randint(0, 10000))
             neighbors.append((new_solution, move))
         
         return neighbors
     
     def _calculate_fitness(self, solution: Solution, employees: List[Employee], shifts: List[Shift]) -> float:
-        """Calculate fitness score for a solution."""
+        """Calcula la puntuación de fitness para una solución."""
         employee_dict = {e.id: e for e in employees}
         shift_dict = {s.id: s for s in shifts}
         
@@ -311,12 +311,12 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 employee = employee_dict[emp_id]
                 shift = shift_dict[shift_id]
                 
-                # Track hours
+                # Registrar horas
                 if emp_id not in employee_hours:
                     employee_hours[emp_id] = 0
                 employee_hours[emp_id] += shift.duration_hours
                 
-                # Track days
+                # Registrar días
                 if emp_id not in employee_days:
                     employee_days[emp_id] = set()
                 employee_days[emp_id].add(shift.day)

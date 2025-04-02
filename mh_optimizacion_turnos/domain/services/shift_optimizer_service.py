@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ShiftOptimizerService:
-    """Service for optimizing shift assignments using configurable metaheuristic algorithms."""
+    """Servicio para optimizar asignaciones de turnos usando algoritmos metaheurísticos configurables."""
     
     def __init__(
         self,
@@ -29,13 +29,13 @@ class ShiftOptimizerService:
         self.optimizer_strategy = optimizer_strategy
     
     def set_optimizer_strategy(self, optimizer_strategy: OptimizerStrategy) -> None:
-        """Set the optimization strategy to use.
+        """Establecer la estrategia de optimización a usar.
         
-        This allows switching between different metaheuristic algorithms
-        at runtime based on user preferences or problem characteristics.
+        Esto permite cambiar entre diferentes algoritmos metaheurísticos
+        en tiempo de ejecución basado en preferencias del usuario o características del problema.
         """
         self.optimizer_strategy = optimizer_strategy
-        logger.info(f"Optimizer strategy set to: {optimizer_strategy.get_name()}")
+        logger.info(f"Estrategia de optimización establecida a: {optimizer_strategy.get_name()}")
     
     def generate_optimal_schedule(
         self,
@@ -43,23 +43,23 @@ class ShiftOptimizerService:
         end_date: str = None,
         config: Dict[str, Any] = None
     ) -> Solution:
-        """Generate an optimal schedule for the given period using the selected strategy.
+        """Generar un horario óptimo para el período dado usando la estrategia seleccionada.
         
         Args:
-            start_date: Start date for the scheduling period
-            end_date: End date for the scheduling period
-            config: Configuration parameters for the optimization algorithm
+            start_date: Fecha de inicio para el período de programación
+            end_date: Fecha de fin para el período de programación
+            config: Parámetros de configuración para el algoritmo de optimización
             
         Returns:
-            A Solution object containing the optimized assignments
+            Un objeto Solution que contiene las asignaciones optimizadas
             
         Raises:
-            ValueError: If no optimizer strategy has been set
+            ValueError: Si no se ha establecido una estrategia de optimización
         """
         if not self.optimizer_strategy:
-            raise ValueError("No optimizer strategy has been set")
+            raise ValueError("No se ha establecido ninguna estrategia de optimización")
         
-        # Get all relevant employees and shifts
+        # Obtener todos los empleados y turnos relevantes
         employees = self.employee_repository.get_all()
         
         if start_date and end_date:
@@ -67,15 +67,15 @@ class ShiftOptimizerService:
         else:
             shifts = self.shift_repository.get_all()
         
-        logger.info(f"Starting optimization with {len(employees)} employees and {len(shifts)} shifts")
+        logger.info(f"Iniciando optimización con {len(employees)} empleados y {len(shifts)} turnos")
         
-        # Use the strategy to optimize
+        # Usar la estrategia para optimizar
         solution = self.optimizer_strategy.optimize(employees, shifts, config)
         
-        # Validate solution
+        # Validar solución
         validation_result = self.solution_validator.validate(solution, employees, shifts)
         if not validation_result.is_valid:
-            logger.warning(f"Generated solution has {validation_result.violations} constraint violations")
+            logger.warning(f"La solución generada tiene {validation_result.violations} violaciones de restricciones")
         
         solution.constraint_violations = validation_result.violations
         
@@ -83,7 +83,7 @@ class ShiftOptimizerService:
         employee_dict = {e.id: e for e in employees}
         shift_dict = {s.id: s for s in shifts}
         
-        # Base cost: Costo real de las asignaciones basado en el costo por hora y duración del turno
+        # Costo base: Costo real de las asignaciones basado en el costo por hora y duración del turno
         base_cost = 0.0
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
@@ -113,7 +113,7 @@ class ShiftOptimizerService:
         total_cost = base_cost + violation_penalty
         solution.total_cost = total_cost
         
-        logger.info(f"Optimization complete. Base cost: {base_cost:.2f}, Penalty: {violation_penalty:.2f}, " 
-                   f"Total cost: {total_cost:.2f}, Violations: {solution.constraint_violations}")
+        logger.info(f"Optimización completada. Costo base: {base_cost:.2f}, Penalización: {violation_penalty:.2f}, " 
+                   f"Costo total: {total_cost:.2f}, Violaciones: {solution.constraint_violations}")
         
         return solution

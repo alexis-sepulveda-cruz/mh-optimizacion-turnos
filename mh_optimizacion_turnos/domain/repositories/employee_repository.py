@@ -6,29 +6,29 @@ from ..models.employee import Employee
 
 
 class EmployeeRepository(ABC):
-    """Repository interface for Employee entities."""
+    """Interfaz de repositorio para entidades Empleado."""
     
     @abstractmethod
     def get_by_id(self, employee_id: UUID) -> Optional[Employee]:
-        """Get an employee by ID."""
+        """Obtener un empleado por su ID."""
         pass
     
     @abstractmethod
     def get_all(self) -> List[Employee]:
-        """Get all employees."""
+        """Obtener todos los empleados."""
         pass
     
     @abstractmethod
     def save(self, employee: Employee) -> Employee:
-        """Save an employee (create or update)."""
+        """Guardar un empleado (crear o actualizar)."""
         pass
     
     @abstractmethod
     def delete(self, employee_id: UUID) -> None:
-        """Delete an employee."""
+        """Eliminar un empleado."""
         pass
     
     @abstractmethod
     def get_available_employees_for_shift(self, day: str, shift: str) -> List[Employee]:
-        """Get all employees available for a specific shift on a specific day."""
+        """Obtener todos los empleados disponibles para un turno específico en un día específico."""
         pass

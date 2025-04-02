@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 @dataclass
 class Employee:
-    """Employee domain entity representing a worker that can be assigned to shifts."""
+    """Entidad de dominio Empleado que representa un trabajador que puede ser asignado a turnos."""
     
     id: UUID = field(default_factory=uuid4)
     name: str = ""
@@ -17,12 +17,12 @@ class Employee:
     hourly_cost: float = 0.0
 
     def is_available(self, day: str, shift: str) -> bool:
-        """Check if an employee is available for a given day and shift."""
+        """Verificar si un empleado está disponible para un día y turno específicos."""
         if day not in self.availability:
             return False
         return shift in self.availability[day]
     
     def get_preference_score(self, day: str, shift: str) -> int:
-        """Get the preference score for a day-shift combination."""
+        """Obtener la puntuación de preferencia para una combinación de día y turno."""
         key = f"{day}_{shift}"
         return self.preferences.get(key, 0)

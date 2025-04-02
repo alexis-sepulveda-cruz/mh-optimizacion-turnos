@@ -38,6 +38,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def ask_continue_iteration():
+    """Pregunta al usuario si desea continuar con la siguiente iteración."""
+    while True:
+        response = input("¿Desea continuar con la iteración? (s/n): ").strip().lower()
+        if response in ['s', 'si', 'sí', 'y', 'yes']:
+            return True
+        elif response in ['n', 'no']:
+            return False
+        else:
+            print("Respuesta no válida. Por favor, ingrese 's' para sí o 'n' para no.")
+
+
 def setup_test_data():
     """Configura datos de ejemplo para pruebas."""
     # Crear repositorios
@@ -119,7 +131,7 @@ def setup_test_data():
     return employee_repo, shift_repo
 
 
-def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: ScheduleExportAdapter):
+def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: ScheduleExportAdapter, interactive=False):
     """Compara los diferentes algoritmos metaheurísticos."""
     algorithms = service.get_available_algorithms()
     results = {}
@@ -130,13 +142,13 @@ def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: Sche
         
         # Configuración específica para cada algoritmo
         if algorithm == "genetic":
-            config = {"population_size": 30, "generations": 50}
+            config = {"population_size": 30, "generations": 50, "interactive": interactive}
         elif algorithm == "tabu":
-            config = {"max_iterations": 50, "tabu_tenure": 10}
+            config = {"max_iterations": 50, "tabu_tenure": 10, "interactive": interactive}
         elif algorithm == "grasp":
-            config = {"max_iterations": 30, "alpha": 0.3}
+            config = {"max_iterations": 30, "alpha": 0.3, "interactive": interactive}
         else:
-            config = None
+            config = {"interactive": interactive}
         
         # Generar solución
         solution = service.generate_schedule(algorithm=algorithm, algorithm_config=config)
@@ -225,8 +237,11 @@ def main():
         shift_repository=shift_repo
     )
     
+    # Preguntar al usuario si desea modo interactivo
+    interactive_mode = input("¿Desea ejecutar los algoritmos en modo interactivo? (s/n): ").strip().lower() in ['s', 'si', 'sí', 'y', 'yes']
+    
     # Ejecutar comparación de algoritmos
-    results = compare_algorithms(shift_assignment_service, export_adapter)
+    results = compare_algorithms(shift_assignment_service, export_adapter, interactive=interactive_mode)
     
     # Graficar resultados
     plot_comparison(results)

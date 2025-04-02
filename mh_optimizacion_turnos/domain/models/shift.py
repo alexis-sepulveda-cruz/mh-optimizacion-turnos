@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 @dataclass
 class Shift:
-    """Shift domain entity representing a work period that needs to be staffed."""
+    """Entidad de dominio Turno que representa un período de trabajo que necesita ser cubierto."""
     
     id: UUID = field(default_factory=uuid4)
     name: str = ""
@@ -15,11 +15,11 @@ class Shift:
     end_time: datetime = None
     required_employees: int = 1
     required_skills: Set[str] = field(default_factory=set)
-    priority: int = 1  # Higher number means higher priority
+    priority: int = 1  # Un número más alto significa mayor prioridad
     
     @property
     def duration_hours(self) -> float:
-        """Calculate the duration of the shift in hours."""
+        """Calcular la duración del turno en horas."""
         if not self.start_time or not self.end_time:
             return 0.0
         delta = self.end_time - self.start_time

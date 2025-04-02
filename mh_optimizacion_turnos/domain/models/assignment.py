@@ -4,12 +4,12 @@ from uuid import UUID, uuid4
 
 @dataclass
 class Assignment:
-    """Assignment domain entity representing the assignment of an employee to a shift."""
+    """Entidad de dominio Asignación que representa la asignación de un empleado a un turno."""
     
     employee_id: UUID
     shift_id: UUID
     id: UUID = uuid4()
-    cost: float = 0.0  # Calculated cost of this assignment
+    cost: float = 0.0  # Costo calculado de esta asignación
     
     def __eq__(self, other):
         if not isinstance(other, Assignment):

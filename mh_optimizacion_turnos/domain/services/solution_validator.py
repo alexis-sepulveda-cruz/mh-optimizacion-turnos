@@ -9,7 +9,7 @@ from ..models.shift import Shift
 
 @dataclass
 class ValidationResult:
-    """Result of validating a solution."""
+    """Resultado de validar una solución."""
     is_valid: bool = True
     violations: int = 0
     violation_details: List[str] = None
@@ -20,60 +20,60 @@ class ValidationResult:
 
 
 class SolutionValidator:
-    """Service to validate if a solution meets all constraints."""
+    """Servicio para validar si una solución cumple con todas las restricciones."""
     
     def validate(self, solution: Solution, employees: List[Employee], shifts: List[Shift]) -> ValidationResult:
-        """Validate a solution against all defined constraints.
+        """Validar una solución contra todas las restricciones definidas.
         
         Args:
-            solution: The solution to validate
-            employees: List of all employees
-            shifts: List of all shifts
+            solution: La solución a validar
+            employees: Lista de todos los empleados
+            shifts: Lista de todos los turnos
             
         Returns:
-            ValidationResult object with validation status and details
+            Objeto ValidationResult con el estado de validación y detalles
         """
         result = ValidationResult()
         
-        # Create lookup dictionaries
+        # Crear diccionarios de búsqueda
         employee_dict = {emp.id: emp for emp in employees}
         shift_dict = {shift.id: shift for shift in shifts}
         
-        # Check that all required shifts are covered
+        # Verificar que todos los turnos requeridos estén cubiertos
         self._validate_shift_coverage(solution, shifts, result)
         
-        # Check employee maximum hours
+        # Verificar horas máximas de empleados
         self._validate_employee_hours(solution, employee_dict, shift_dict, result)
         
-        # Check employee consecutive days
+        # Verificar días consecutivos de empleados
         self._validate_consecutive_days(solution, employee_dict, shift_dict, result)
         
-        # Check employee skills match shift requirements
+        # Verificar que las habilidades de los empleados coincidan con los requisitos del turno
         self._validate_employee_skills(solution, employee_dict, shift_dict, result)
         
-        # Check employee availability
+        # Verificar disponibilidad de empleados
         self._validate_employee_availability(solution, employee_dict, shift_dict, result)
         
-        # Set the is_valid flag if there are no violations
+        # Establecer la bandera is_valid si no hay violaciones
         result.is_valid = (result.violations == 0)
         
         return result
     
     def _validate_shift_coverage(self, solution: Solution, shifts: List[Shift], 
                                 result: ValidationResult) -> None:
-        """Validate that all shifts have the required number of employees."""
+        """Validar que todos los turnos tengan el número requerido de empleados."""
         for shift in shifts:
             assigned_employees = solution.get_shift_employees(shift.id)
             if len(assigned_employees) < shift.required_employees:
                 result.violations += 1
                 result.violation_details.append(
-                    f"Shift {shift.name} on {shift.day} has {len(assigned_employees)} employees " 
-                    f"but requires {shift.required_employees}"
+                    f"El turno {shift.name} del {shift.day} tiene {len(assigned_employees)} empleados " 
+                    f"pero requiere {shift.required_employees}"
                 )
     
     def _validate_employee_hours(self, solution: Solution, employee_dict: Dict, 
                                shift_dict: Dict, result: ValidationResult) -> None:
-        """Validate that employees don't exceed their maximum hours."""
+        """Validar que los empleados no excedan sus horas máximas."""
         employee_hours = defaultdict(float)
         
         for assignment in solution.assignments:
@@ -88,14 +88,14 @@ class SolutionValidator:
                 if employee_hours[emp_id] > employee.max_hours_per_week:
                     result.violations += 1
                     result.violation_details.append(
-                        f"Employee {employee.name} exceeds maximum weekly hours: "
+                        f"El empleado {employee.name} excede las horas semanales máximas: "
                         f"{employee_hours[emp_id]} > {employee.max_hours_per_week}"
                     )
     
     def _validate_consecutive_days(self, solution: Solution, employee_dict: Dict, 
                                  shift_dict: Dict, result: ValidationResult) -> None:
-        """Validate that employees don't work more consecutive days than allowed."""
-        # Group shifts by employee and day
+        """Validar que los empleados no trabajen más días consecutivos de lo permitido."""
+        # Agrupar turnos por empleado y día
         employee_days = defaultdict(set)
         
         for assignment in solution.assignments:
@@ -106,22 +106,22 @@ class SolutionValidator:
                 shift = shift_dict[shift_id]
                 employee_days[emp_id].add(shift.day)
         
-        # Check consecutive days
+        # Verificar días consecutivos
         for emp_id, days in employee_days.items():
             if emp_id in employee_dict:
                 employee = employee_dict[emp_id]
-                # This is a simplified check - in a real implementation,
-                # we would need to convert dates to actual date objects and check sequences
+                # Esta es una verificación simplificada - en una implementación real,
+                # necesitaríamos convertir las fechas a objetos de fecha reales y verificar secuencias
                 if len(days) > employee.max_consecutive_days:
                     result.violations += 1
                     result.violation_details.append(
-                        f"Employee {employee.name} works {len(days)} days, "
-                        f"exceeding maximum consecutive days of {employee.max_consecutive_days}"
+                        f"El empleado {employee.name} trabaja {len(days)} días, "
+                        f"excediendo el máximo de días consecutivos de {employee.max_consecutive_days}"
                     )
     
     def _validate_employee_skills(self, solution: Solution, employee_dict: Dict, 
                                 shift_dict: Dict, result: ValidationResult) -> None:
-        """Validate that employees have the required skills for their shifts."""
+        """Validar que los empleados tengan las habilidades requeridas para sus turnos."""
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
             shift_id = assignment.shift_id
@@ -134,13 +134,13 @@ class SolutionValidator:
                     missing_skills = shift.required_skills - employee.skills
                     result.violations += 1
                     result.violation_details.append(
-                        f"Employee {employee.name} lacks required skills for shift {shift.name}: "
-                        f"Missing {', '.join(missing_skills)}"
+                        f"El empleado {employee.name} carece de las habilidades requeridas para el turno {shift.name}: "
+                        f"Falta {', '.join(missing_skills)}"
                     )
     
     def _validate_employee_availability(self, solution: Solution, employee_dict: Dict, 
                                       shift_dict: Dict, result: ValidationResult) -> None:
-        """Validate that employees are available for their assigned shifts."""
+        """Validar que los empleados estén disponibles para sus turnos asignados."""
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
             shift_id = assignment.shift_id
@@ -152,5 +152,5 @@ class SolutionValidator:
                 if not employee.is_available(shift.day, shift.name):
                     result.violations += 1
                     result.violation_details.append(
-                        f"Employee {employee.name} is not available for shift {shift.name} on {shift.day}"
+                        f"El empleado {employee.name} no está disponible para el turno {shift.name} el {shift.day}"
                     )
