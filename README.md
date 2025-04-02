@@ -1,98 +1,154 @@
-# Optimización de Turnos - Metaheurística
+# Sistema de Asignación Óptima de Turnos de Trabajo
 
-Este proyecto implementa técnicas metaheurísticas para optimizar la asignación de turnos.
+Sistema para optimizar la asignación de empleados a turnos de trabajo minimizando costos y asegurando el cumplimiento de restricciones como disponibilidad, horas máximas permitidas y balance de carga laboral.
 
-## Requisitos previos
+## Características
 
-- Python 3.8 o superior
-- Poetry (gestor de dependencias)
+- **Arquitectura Hexagonal**: Separa la lógica de negocio de los detalles de implementación
+- **Domain-Driven Design (DDD)**: Modelado del dominio basado en entidades y servicios de dominio
+- **Patrón Strategy**: Implementación intercambiable de algoritmos metaheurísticos
+- **Algoritmos implementados**:
+  - Algoritmo Genético
+  - Búsqueda Tabú
+  - GRASP (Greedy Randomized Adaptive Search Procedure)
+- **Principios SOLID**: Aplicados en todo el diseño
+- **Exportación de resultados**: En múltiples formatos (JSON, CSV, Excel, texto)
 
-## Instalación de Poetry
+## Estructura del Proyecto
 
-Poetry es una herramienta para la gestión de dependencias y empaquetado en Python que permite declarar las librerías de las que depende tu proyecto y administrarlas (instalarlas/actualizarlas).
-
-### Para instalar Poetry:
-
-**En Linux, macOS, Windows (WSL)**:
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
+```
+mh_optimizacion_turnos/
+├── application/                # Capa de aplicación
+│   └── ports/                  # Puertos de entrada y salida
+├── domain/                     # Núcleo de dominio
+│   ├── models/                 # Entidades del dominio
+│   ├── repositories/           # Interfaces de repositorios
+│   └── services/               # Servicios de dominio
+│       └── optimizers/         # Implementaciones de algoritmos
+├── infrastructure/             # Capa de infraestructura
+│   ├── adapters/               # Adaptadores para puertos
+│   └── repositories/           # Implementaciones de repositorios
+└── config/                     # Configuraciones
 ```
 
-**En Windows (PowerShell)**:
-```powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-```
+## Requisitos
 
-**Verificar la instalación**:
+- Python 3.12+
+- Dependencias (instalables con Poetry):
+  - numpy
+  - pandas
+  - matplotlib
+
+## Instalación
+
 ```bash
-poetry --version
-```
+# Clonar el repositorio
+git clone [url-del-repositorio]
+cd mh-optimizacion-turnos
 
-## Uso de Poetry
-
-### Inicializar un nuevo proyecto
-```bash
-poetry new nombre-proyecto
-```
-
-### Inicializar un proyecto existente
-```bash
-cd mi-proyecto-existente
-poetry init
-```
-
-### Agregar dependencias
-```bash
-poetry add pandas numpy matplotlib
-```
-
-### Agregar dependencias de desarrollo
-```bash
-poetry add pytest --dev
-```
-
-### Instalar dependencias del proyecto
-```bash
+# Instalar dependencias con Poetry
 poetry install
 ```
 
-### Ejecutar un comando dentro del entorno virtual
-```bash
-poetry run python main.py
+## Uso
+
+### Ejemplo básico
+
+```python
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.models.shift import Shift
+from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
+from mh_optimizacion_turnos.domain.services.shift_optimizer_service import ShiftOptimizerService
+from mh_optimizacion_turnos.infrastructure.repositories.in_memory_employee_repository import InMemoryEmployeeRepository
+from mh_optimizacion_turnos.infrastructure.repositories.in_memory_shift_repository import InMemoryShiftRepository
+from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter import ShiftAssignmentServiceAdapter
+
+# Crear repositorios
+employee_repo = InMemoryEmployeeRepository()
+shift_repo = InMemoryShiftRepository()
+
+# Agregar empleados y turnos a los repositorios
+# ...
+
+# Crear servicios
+solution_validator = SolutionValidator()
+optimizer_service = ShiftOptimizerService(
+    employee_repository=employee_repo,
+    shift_repository=shift_repo,
+    solution_validator=solution_validator
+)
+
+# Crear adaptador de servicio
+assignment_service = ShiftAssignmentServiceAdapter(optimizer_service)
+
+# Generar solución con diferentes algoritmos
+solution_genetic = assignment_service.generate_schedule(algorithm="genetic")
+solution_tabu = assignment_service.generate_schedule(algorithm="tabu")
+solution_grasp = assignment_service.generate_schedule(algorithm="grasp")
 ```
 
-### Activar el entorno virtual
+### Ejemplo completo
+
+El archivo `example.py` incluido en el repositorio contiene un ejemplo completo que:
+1. Crea datos de prueba aleatorios (empleados y turnos)
+2. Ejecuta los tres algoritmos metaheurísticos
+3. Compara resultados (tiempo de ejecución, costo, violaciones)
+4. Genera gráficos comparativos
+
+Para ejecutar el ejemplo:
+
 ```bash
-poetry shell
+python example.py
 ```
 
-### Actualizar dependencias
-```bash
-poetry update
+## Configuración de algoritmos
+
+Cada algoritmo puede ser configurado con diferentes parámetros:
+
+### Algoritmo Genético
+```python
+config = {
+    "population_size": 50,      # Tamaño de población 
+    "generations": 100,         # Número de generaciones
+    "mutation_rate": 0.1,       # Tasa de mutación
+    "crossover_rate": 0.8,      # Tasa de cruzamiento
+    "elitism_count": 5,         # Número de soluciones élite que se mantienen
+    "tournament_size": 3        # Tamaño del torneo para selección
+}
 ```
 
-### Exportar dependencias a requirements.txt
-```bash
-poetry export -f requirements.txt --output requirements.txt
+### Búsqueda Tabú
+```python
+config = {
+    "max_iterations": 1000,     # Número máximo de iteraciones
+    "tabu_tenure": 20,          # Duración de la prohibición tabú
+    "neighborhood_size": 30,    # Tamaño del vecindario a explorar
+    "max_iterations_without_improvement": 200  # Criterio de parada
+}
 ```
 
-## Estructura del proyecto
-```
-mh-optimizacion-turnos/
-├── pyproject.toml         # Configuración de Poetry y dependencias
-├── poetry.lock           # Versiones exactas de dependencias
-└── src/                  # Código fuente
+### GRASP
+```python
+config = {
+    "max_iterations": 100,      # Número máximo de iteraciones
+    "alpha": 0.3,               # Factor de aleatoriedad (0=greedy, 1=aleatorio)
+    "local_search_iterations": 50  # Iteraciones de búsqueda local
+}
 ```
 
-## Cómo empezar
+## Extensibilidad
 
-1. Clona el repositorio
-2. Instala Poetry siguiendo las instrucciones anteriores
-3. Instala las dependencias del proyecto:
-```bash
-poetry install
-```
-4. Ejecuta el código:
-```bash
-poetry run python src/main.py
-```
+El sistema está diseñado para ser fácilmente extensible:
+
+1. Para añadir un nuevo algoritmo metaheurístico:
+   - Crear una nueva clase que herede de `OptimizerStrategy`
+   - Implementar los métodos requeridos
+   - Registrar el algoritmo en el adaptador de servicio
+
+2. Para cambiar la persistencia:
+   - Implementar nuevas clases que hereden de los repositorios de dominio
+   - Configurar las dependencias acordemente
+
+## Licencia
+
+Este proyecto está licenciado bajo [licencia a definir].
