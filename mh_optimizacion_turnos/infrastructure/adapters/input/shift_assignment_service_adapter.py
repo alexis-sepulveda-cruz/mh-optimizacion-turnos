@@ -3,7 +3,7 @@ import logging
 
 from mh_optimizacion_turnos.application.ports.input.shift_assignment_service_port import ShiftAssignmentServicePort
 from mh_optimizacion_turnos.domain.models.solution import Solution
-from mh_optimizacion_turnos.domain.models.algorithm_type import AlgorithmType
+from mh_optimizacion_turnos.domain.value_objects.algorithm_type import AlgorithmType
 from mh_optimizacion_turnos.domain.services.shift_optimizer_service import ShiftOptimizerService
 from mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer import GeneticAlgorithmOptimizer
 from mh_optimizacion_turnos.domain.services.optimizers.tabu_search_optimizer import TabuSearchOptimizer

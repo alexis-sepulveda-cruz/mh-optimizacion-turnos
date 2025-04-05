@@ -8,11 +8,9 @@ class Day(Enum):
     LUNES = auto()
     MARTES = auto()
     MIERCOLES = auto()
-    MIERCOLES_CON_TILDE = auto()  # Para compatibilidad con "Miércoles"
     JUEVES = auto()
     VIERNES = auto()
     SABADO = auto()
-    SABADO_CON_TILDE = auto()  # Para compatibilidad con "Sábado"
     DOMINGO = auto()
     
     @classmethod
@@ -20,7 +18,7 @@ class Day(Enum):
         """Convierte una cadena de texto a un enum Day.
         
         Args:
-            day_str: Cadena de texto que representa un día
+            day_str: Cadena de texto que representa un día de la semana
             
         Returns:
             Enum Day correspondiente
@@ -34,14 +32,14 @@ class Day(Enum):
             return cls.LUNES
         elif day_str_lower == 'martes':
             return cls.MARTES
-        elif day_str_lower in ('miercoles', 'miércoles'):
-            return cls.MIERCOLES if day_str_lower == 'miercoles' else cls.MIERCOLES_CON_TILDE
+        elif day_str_lower in ('miércoles', 'miercoles'):
+            return cls.MIERCOLES
         elif day_str_lower == 'jueves':
             return cls.JUEVES
         elif day_str_lower == 'viernes':
             return cls.VIERNES
-        elif day_str_lower in ('sabado', 'sábado'):
-            return cls.SABADO if day_str_lower == 'sabado' else cls.SABADO_CON_TILDE
+        elif day_str_lower == 'sábado' or day_str_lower == 'sabado':
+            return cls.SABADO
         elif day_str_lower == 'domingo':
             return cls.DOMINGO
         else:
@@ -57,26 +55,31 @@ class Day(Enum):
             return "Lunes"
         elif self == self.MARTES:
             return "Martes"
-        elif self in (self.MIERCOLES, self.MIERCOLES_CON_TILDE):
+        elif self == self.MIERCOLES:
             return "Miércoles"
         elif self == self.JUEVES:
             return "Jueves"
         elif self == self.VIERNES:
             return "Viernes"
-        elif self in (self.SABADO, self.SABADO_CON_TILDE):
+        elif self == self.SABADO:
             return "Sábado"
         elif self == self.DOMINGO:
             return "Domingo"
         
     @classmethod
-    def get_all_days(cls) -> List['Day']:
-        """Obtiene una lista con todos los días de la semana.
+    def get_weekdays(cls) -> List['Day']:
+        """Obtiene una lista con los días laborables (lunes a viernes).
         
         Returns:
-            Lista de enums Day, uno por cada día de la semana
+            Lista de enums Day correspondientes a los días laborables
         """
-        # Excluimos las versiones alternativas con tilde para evitar duplicados
-        return [
-            cls.LUNES, cls.MARTES, cls.MIERCOLES, cls.JUEVES, 
-            cls.VIERNES, cls.SABADO, cls.DOMINGO
-        ]
+        return [cls.LUNES, cls.MARTES, cls.MIERCOLES, cls.JUEVES, cls.VIERNES]
+    
+    @classmethod
+    def get_weekend(cls) -> List['Day']:
+        """Obtiene una lista con los días de fin de semana (sábado y domingo).
+        
+        Returns:
+            Lista de enums Day correspondientes al fin de semana
+        """
+        return [cls.SABADO, cls.DOMINGO]

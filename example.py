@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List, Any
 
-from mh_optimizacion_turnos.domain.models.day import Day
-from mh_optimizacion_turnos.domain.models.shift_type import ShiftType
-from mh_optimizacion_turnos.domain.models.skill import Skill
-from mh_optimizacion_turnos.domain.models.algorithm_type import AlgorithmType
+from mh_optimizacion_turnos.domain.value_objects.day import Day
+from mh_optimizacion_turnos.domain.value_objects.shift_type import ShiftType
+from mh_optimizacion_turnos.domain.value_objects.skill import Skill
+from mh_optimizacion_turnos.domain.value_objects.algorithm_type import AlgorithmType
 from mh_optimizacion_turnos.domain.models.employee import Employee
 from mh_optimizacion_turnos.domain.models.shift import Shift
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
@@ -28,7 +28,6 @@ from mh_optimizacion_turnos.domain.services.shift_optimizer_service import Shift
 from mh_optimizacion_turnos.infrastructure.repositories.in_memory_employee_repository import InMemoryEmployeeRepository
 from mh_optimizacion_turnos.infrastructure.repositories.in_memory_shift_repository import InMemoryShiftRepository
 
-from mh_optimizacion_turnos.application.ports.input.shift_assignment_service_port import ShiftAssignmentServicePort
 from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter import ShiftAssignmentServiceAdapter
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
 

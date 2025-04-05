@@ -3,9 +3,9 @@ from datetime import datetime, time
 from typing import Set, Optional, Union
 from uuid import UUID, uuid4
 
-from mh_optimizacion_turnos.domain.models.day import Day
-from mh_optimizacion_turnos.domain.models.shift_type import ShiftType
-from mh_optimizacion_turnos.domain.models.skill import Skill
+from mh_optimizacion_turnos.domain.value_objects.day import Day
+from mh_optimizacion_turnos.domain.value_objects.shift_type import ShiftType
+from mh_optimizacion_turnos.domain.value_objects.skill import Skill
 
 
 @dataclass
