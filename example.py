@@ -63,9 +63,9 @@ def setup_test_data():
     
     # Horas para cada tipo de turno
     shift_hours = {
-        "Mañana": (datetime(2023, 1, 1, 8, 0), datetime(2023, 1, 1, 16, 0)),
-        "Tarde": (datetime(2023, 1, 1, 16, 0), datetime(2023, 1, 1, 0, 0)),
-        "Noche": (datetime(2023, 1, 1, 0, 0), datetime(2023, 1, 1, 8, 0))
+        "Mañana": (datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 16, 0)),
+        "Tarde": (datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 0, 0)),
+        "Noche": (datetime(2025, 1, 1, 0, 0), datetime(2025, 1, 1, 8, 0))
     }
     
     # Crear turnos para cada día y tipo

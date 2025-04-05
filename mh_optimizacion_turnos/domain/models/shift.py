@@ -9,7 +9,7 @@ class Shift:
     """Representa un turno en el sistema de asignación de turnos."""
     
     name: str
-    day: str  # puede ser 'lunes' o una fecha específica como '2023-04-01'
+    day: str  # puede ser 'lunes' o una fecha específica como '2025-04-01'
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     duration_hours: float = 8.0  # duración en horas
