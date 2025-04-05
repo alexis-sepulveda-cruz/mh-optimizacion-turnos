@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 
 from mh_optimizacion_turnos.domain.models.solution import Solution
@@ -60,12 +60,12 @@ class ShiftOptimizerService:
             raise ValueError("No se ha establecido ninguna estrategia de optimización")
         
         # Obtener todos los empleados y turnos relevantes
-        employees = self.employee_repository.get_all()
+        employees: List[Employee] = self.employee_repository.get_all()
         
         if start_date and end_date:
-            shifts = self.shift_repository.get_shifts_by_period(start_date, end_date)
+            shifts: List[Shift] = self.shift_repository.get_shifts_by_period(start_date, end_date)
         else:
-            shifts = self.shift_repository.get_all()
+            shifts: List[Shift] = self.shift_repository.get_all()
         
         logger.info(f"Iniciando optimización con {len(employees)} empleados y {len(shifts)} turnos")
         

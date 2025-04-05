@@ -19,6 +19,7 @@ from typing import Dict, List, Any
 from mh_optimizacion_turnos.domain.models.day import Day
 from mh_optimizacion_turnos.domain.models.shift_type import ShiftType
 from mh_optimizacion_turnos.domain.models.skill import Skill
+from mh_optimizacion_turnos.domain.models.algorithm_type import AlgorithmType
 from mh_optimizacion_turnos.domain.models.employee import Employee
 from mh_optimizacion_turnos.domain.models.shift import Shift
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
@@ -161,33 +162,35 @@ def setup_test_data():
     return employee_repo, shift_repo
 
 
-def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: ScheduleExportAdapter, interactive=False):
+def compare_algorithms(service: ShiftAssignmentServiceAdapter, export_adapter: ScheduleExportAdapter, interactive=False):
     """Compara los diferentes algoritmos metaheurísticos."""
-    algorithms = service.get_available_algorithms()
+    # Obtener enums de algoritmos disponibles en lugar de strings
+    algorithms = service.get_available_algorithm_enums()
     results = {}
     
     for algorithm in algorithms:
-        logger.info(f"Probando algoritmo: {algorithm}")
+        logger.info(f"Probando algoritmo: {algorithm.to_string()}")
         start_time = time.time()
         
         # Configuración específica para cada algoritmo
-        if algorithm == "genetic":
+        if algorithm == AlgorithmType.GENETIC:
             config = {"population_size": 30, "generations": 50, "interactive": interactive}
-        elif algorithm == "tabu":
+        elif algorithm == AlgorithmType.TABU:
             config = {"max_iterations": 50, "tabu_tenure": 10, "interactive": interactive}
-        elif algorithm == "grasp":
+        elif algorithm == AlgorithmType.GRASP:
             config = {"max_iterations": 30, "alpha": 0.3, "interactive": interactive}
         else:
             config = {"interactive": interactive}
         
-        # Generar solución
+        # Generar solución con el enum directamente
         solution = service.generate_schedule(algorithm=algorithm, algorithm_config=config)
         
         end_time = time.time()
         execution_time = end_time - start_time
         
-        # Almacenar resultados
-        results[algorithm] = {
+        # Almacenar resultados usando el string del enum como clave para mantener compatibilidad
+        algorithm_name = algorithm.to_string()
+        results[algorithm_name] = {
             "execution_time": execution_time,
             "cost": solution.total_cost,
             "violations": solution.constraint_violations,
@@ -195,7 +198,7 @@ def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: Sche
         }
         
         # Mostrar resultados
-        logger.info(f"Algoritmo: {algorithm}")
+        logger.info(f"Algoritmo: {algorithm_name}")
         logger.info(f"Tiempo de ejecución: {execution_time:.2f} segundos")
         logger.info(f"Costo total: {solution.total_cost:.2f}")
         logger.info(f"Violaciones: {solution.constraint_violations}")
@@ -203,7 +206,7 @@ def compare_algorithms(service: ShiftAssignmentServicePort, export_adapter: Sche
         
         # Exportar solución como texto
         solution_text = export_adapter.export_solution(solution, "text")
-        logger.info(f"\nSolución con {algorithm}:\n{solution_text}\n")
+        logger.info(f"\nSolución con {algorithm_name}:\n{solution_text}\n")
     
     return results
 

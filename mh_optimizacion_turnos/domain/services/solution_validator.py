@@ -36,8 +36,8 @@ class SolutionValidator:
         result = ValidationResult()
         
         # Crear diccionarios de búsqueda
-        employee_dict = {emp.id: emp for emp in employees}
-        shift_dict = {shift.id: shift for shift in shifts}
+        employee_dict: Dict[int, Employee] = {emp.id: emp for emp in employees}
+        shift_dict: Dict[int, Shift] = {shift.id: shift for shift in shifts}
         
         # Verificar que todos los turnos requeridos estén cubiertos
         self._validate_shift_coverage(solution, shifts, result)
@@ -71,8 +71,8 @@ class SolutionValidator:
                     f"pero requiere {shift.required_employees}"
                 )
     
-    def _validate_employee_hours(self, solution: Solution, employee_dict: Dict, 
-                               shift_dict: Dict, result: ValidationResult) -> None:
+    def _validate_employee_hours(self, solution: Solution, employee_dict: Dict[int, Employee], 
+                               shift_dict: Dict[int, Shift], result: ValidationResult) -> None:
         """Validar que los empleados no excedan sus horas máximas."""
         employee_hours = defaultdict(float)
         
@@ -92,8 +92,8 @@ class SolutionValidator:
                         f"{employee_hours[emp_id]} > {employee.max_hours_per_week}"
                     )
     
-    def _validate_consecutive_days(self, solution: Solution, employee_dict: Dict, 
-                                 shift_dict: Dict, result: ValidationResult) -> None:
+    def _validate_consecutive_days(self, solution: Solution, employee_dict: Dict[int, Employee], 
+                                 shift_dict: Dict[int, Shift], result: ValidationResult) -> None:
         """Validar que los empleados no trabajen más días consecutivos de lo permitido."""
         # Agrupar turnos por empleado y día
         employee_days = defaultdict(set)
@@ -119,8 +119,8 @@ class SolutionValidator:
                         f"excediendo el máximo de días consecutivos de {employee.max_consecutive_days}"
                     )
     
-    def _validate_employee_skills(self, solution: Solution, employee_dict: Dict, 
-                                shift_dict: Dict, result: ValidationResult) -> None:
+    def _validate_employee_skills(self, solution: Solution, employee_dict: Dict[int, Employee], 
+                                shift_dict: Dict[int, Shift], result: ValidationResult) -> None:
         """Validar que los empleados tengan las habilidades requeridas para sus turnos."""
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
@@ -138,8 +138,8 @@ class SolutionValidator:
                         f"Falta {', '.join(missing_skills)}"
                     )
     
-    def _validate_employee_availability(self, solution: Solution, employee_dict: Dict, 
-                                      shift_dict: Dict, result: ValidationResult) -> None:
+    def _validate_employee_availability(self, solution: Solution, employee_dict: Dict[int, Employee], 
+                                      shift_dict: Dict[int, Shift], result: ValidationResult) -> None:
         """Validar que los empleados estén disponibles para sus turnos asignados."""
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
