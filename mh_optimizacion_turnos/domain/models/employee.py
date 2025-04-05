@@ -42,11 +42,13 @@ class Employee:
                         "Ejemplo: {Day.LUNES: [ShiftType.MAÑANA, ShiftType.TARDE]}"
         }
     )
-    preferences: Dict[str, Dict[str, int]] = field(
+    preferences: Dict[Union[Day, str], Dict[Union[ShiftType, str], int]] = field(
         default_factory=dict,
         metadata={
             "description": "Preferencias del empleado para días y turnos específicos. "
-                        "Ejemplo: {'lunes': {'mañana': 8, 'tarde': 5}}"
+                        "Ejemplo: {Day.LUNES: {ShiftType.MAÑANA: 8, ShiftType.TARDE: 5}}"
+                        "Para compatibilidad con código anterior, también acepta: "
+                        "{'lunes': {'mañana': 8, 'tarde': 5}}"
         }
     )
     id: UUID = field(
@@ -181,9 +183,23 @@ class Employee:
             shift_name: El turno como enum ShiftType o como cadena 'mañana', 'noche'
             score: Puntuación de preferencia (más alto es mejor, típicamente 1-10)
         """
-        # Convertir a string para mantener compatibilidad con el formato de preferencias
-        day_key = day.to_string() if isinstance(day, Day) else day
-        shift_key = shift_name.to_string() if isinstance(shift_name, ShiftType) else shift_name
+        # Convertir a enum si se proporciona como cadena
+        day_key = day
+        if isinstance(day, str):
+            try:
+                day_key = Day.from_string(day)
+            except ValueError:
+                # Si no es un día de la semana válido, mantener como string
+                pass
+        
+        # Convertir shift_name a ShiftType si es una cadena
+        shift_key = shift_name
+        if isinstance(shift_name, str):
+            try:
+                shift_key = ShiftType.from_string(shift_name)
+            except ValueError:
+                # Si no es un tipo de turno válido, mantener como string
+                pass
         
         if day_key not in self.preferences:
             self.preferences[day_key] = {}
@@ -200,13 +216,44 @@ class Employee:
         Returns:
             Puntuación de preferencia (0 si no hay preferencia establecida)
         """
-        # Convertir a string para mantener compatibilidad con el formato de preferencias
-        day_key = day.to_string() if isinstance(day, Day) else day
-        shift_key = shift_name.to_string() if isinstance(shift_name, ShiftType) else shift_name
+        # Primero intentamos buscar con los valores originales
+        if day in self.preferences and shift_name in self.preferences[day]:
+            return self.preferences[day][shift_name]
         
+        # Si no se encontró, intentamos convertir a enums si son strings
+        day_key = day
+        if isinstance(day, str):
+            try:
+                day_key = Day.from_string(day)
+            except ValueError:
+                # Si no es un día de la semana válido, intentamos buscar por string directamente
+                pass
+        
+        shift_key = shift_name
+        if isinstance(shift_name, str):
+            try:
+                shift_key = ShiftType.from_string(shift_name)
+            except ValueError:
+                # Si no es un tipo de turno válido, mantener como string
+                pass
+        
+        # Intentamos buscar con los valores convertidos
         if day_key in self.preferences and shift_key in self.preferences[day_key]:
             return self.preferences[day_key][shift_key]
-        return 0  # Valor predeterminado si no hay preferencia establecida
+        
+        # Si es un enum, intentamos buscar con su representación en string
+        if isinstance(day, Day):
+            day_str = day.to_string()
+            if day_str in self.preferences:
+                if isinstance(shift_name, ShiftType):
+                    shift_str = shift_name.to_string()
+                    if shift_str in self.preferences[day_str]:
+                        return self.preferences[day_str][shift_str]
+                elif shift_name in self.preferences[day_str]:
+                    return self.preferences[day_str][shift_name]
+        
+        # Si todo lo anterior falla, no hay preferencia
+        return 0
     
     def add_skill(self, skill: Union[Skill, str]) -> None:
         """Añade una habilidad al empleado.
@@ -274,3 +321,39 @@ class Employee:
                 return False
         else:
             return skill in self.skills
+    
+    def normalize_preferences(self) -> None:
+        """Normaliza la estructura de preferencias para usar exclusivamente enums.
+        
+        Esta función convierte todas las cadenas de texto en las preferencias
+        a sus correspondientes enums Day y ShiftType.
+        """
+        normalized_preferences = {}
+        
+        for day_key, shift_dict in self.preferences.items():
+            # Convertir día a enum si es string
+            normalized_day = day_key
+            if isinstance(day_key, str):
+                try:
+                    normalized_day = Day.from_string(day_key)
+                except ValueError:
+                    # Mantener como string si no es un día de la semana válido
+                    pass
+            
+            # Inicializar el diccionario para este día
+            normalized_preferences[normalized_day] = {}
+            
+            # Procesar cada turno
+            for shift_key, score in shift_dict.items():
+                # Convertir turno a enum si es string
+                normalized_shift = shift_key
+                if isinstance(shift_key, str):
+                    try:
+                        normalized_shift = ShiftType.from_string(shift_key)
+                    except ValueError:
+                        # Mantener como string si no es un tipo de turno válido
+                        pass
+                
+                normalized_preferences[normalized_day][normalized_shift] = score
+        
+        self.preferences = normalized_preferences

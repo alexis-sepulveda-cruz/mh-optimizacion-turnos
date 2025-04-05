@@ -137,20 +137,23 @@ def setup_test_data():
         
         employee.availability = availability
         
-        # Definir preferencias aleatorias
+        # Definir preferencias aleatorias usando directamente los enums
         preferences = {}
         for day in days:
-            day_str = day.to_string()
+            # Inicializar diccionario para este día si no existe
+            if day not in preferences:
+                preferences[day] = {}
+                
             for shift_type in shift_types:
                 # Verificar si este turno está en la disponibilidad del empleado para este día
                 if day in employee.availability and shift_type in employee.availability[day]:
-                    shift_str = shift_type.to_string()
                     # Mayor probabilidad de preferir mañana
                     if shift_type == ShiftType.MAÑANA:
                         preference = np.random.randint(3, 6)
                     else:
                         preference = np.random.randint(1, 4)
-                    preferences[f"{day_str}_{shift_str}"] = preference
+                    # Guardar preferencia usando directamente los enums
+                    preferences[day][shift_type] = preference
         
         employee.preferences = preferences
         employee_repo.save(employee)
