@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
-from uuid import UUID
 
 from ..models.solution import Solution
 from ..models.employee import Employee

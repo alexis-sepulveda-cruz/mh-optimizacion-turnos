@@ -1,7 +1,6 @@
 import random
 import logging
-import copy
-from typing import List, Dict, Any, Set, Tuple
+from typing import List, Dict, Any, Tuple
 from collections import deque
 
 from ..optimizer_strategy import OptimizerStrategy

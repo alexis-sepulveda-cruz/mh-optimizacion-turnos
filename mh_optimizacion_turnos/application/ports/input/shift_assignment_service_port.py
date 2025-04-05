@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
-from uuid import UUID
 
 from ....domain.models.solution import Solution
 from ....domain.services.optimizer_strategy import OptimizerStrategy

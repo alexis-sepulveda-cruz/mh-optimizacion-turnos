@@ -1,7 +1,6 @@
 import random
 import logging
-from typing import List, Dict, Any, Tuple
-import copy
+from typing import List, Dict, Any
 
 from ..optimizer_strategy import OptimizerStrategy
 from ..solution_validator import SolutionValidator

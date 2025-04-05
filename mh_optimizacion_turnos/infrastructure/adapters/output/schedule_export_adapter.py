@@ -1,8 +1,6 @@
 import json
-import csv
-import os
 import pandas as pd
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import logging
 
 from ....application.ports.output.schedule_export_port import ScheduleExportPort

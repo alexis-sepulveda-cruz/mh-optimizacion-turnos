@@ -1,6 +1,5 @@
 from typing import List, Optional, Dict
 from uuid import UUID
-from datetime import datetime
 
 from ...domain.models.shift import Shift
 from ...domain.repositories.shift_repository import ShiftRepository

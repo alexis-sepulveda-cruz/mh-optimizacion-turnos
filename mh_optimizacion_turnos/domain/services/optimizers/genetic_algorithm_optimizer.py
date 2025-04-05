@@ -1,7 +1,6 @@
 import random
 import logging
 from typing import List, Dict, Any, Tuple
-import numpy as np
 
 from ..optimizer_strategy import OptimizerStrategy
 from ...models.solution import Solution

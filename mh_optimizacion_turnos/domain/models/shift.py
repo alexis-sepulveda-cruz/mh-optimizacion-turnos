@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Set
 from uuid import UUID, uuid4
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 @dataclass
