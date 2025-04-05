@@ -20,7 +20,7 @@ class Employee:
         """Verifica si el empleado está disponible para un turno y día específicos.
         
         Args:
-            day: El día (por ejemplo, 'lunes', '2025-04-01')
+            day: El día (por ejemplo, 'martes', '2025-04-01')
             shift_name: El nombre del turno (por ejemplo, 'mañana', 'noche')
             
         Returns:
@@ -37,7 +37,7 @@ class Employee:
         """Añade disponibilidad para un turno en un día específico.
         
         Args:
-            day: El día (por ejemplo, 'lunes', '2025-04-01')
+            day: El día (por ejemplo, 'martes', '2025-04-01')
             shift_name: El nombre del turno (por ejemplo, 'mañana', 'noche')
         """
         if day not in self.availability:
@@ -50,7 +50,7 @@ class Employee:
         """Elimina disponibilidad para un turno en un día específico.
         
         Args:
-            day: El día (por ejemplo, 'lunes', '2025-04-01')
+            day: El día (por ejemplo, 'martes', '2025-04-01')
             shift_name: El nombre del turno (por ejemplo, 'mañana', 'noche')
         """
         if day in self.availability and shift_name in self.availability[day]:
@@ -60,7 +60,7 @@ class Employee:
         """Establece una preferencia para un turno en un día específico.
         
         Args:
-            day: El día (por ejemplo, 'lunes', '2025-04-01')
+            day: El día (por ejemplo, 'martes', '2025-04-01')
             shift_name: El nombre del turno (por ejemplo, 'mañana', 'noche')
             score: Puntuación de preferencia (más alto es mejor, típicamente 1-10)
         """
@@ -73,7 +73,7 @@ class Employee:
         """Obtiene la puntuación de preferencia para un turno en un día específico.
         
         Args:
-            day: El día (por ejemplo, 'lunes', '2025-04-01')
+            day: El día (por ejemplo, 'martes', '2025-04-01')
             shift_name: El nombre del turno (por ejemplo, 'mañana', 'noche')
             
         Returns:
