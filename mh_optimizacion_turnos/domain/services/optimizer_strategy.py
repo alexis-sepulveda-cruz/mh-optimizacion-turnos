@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 
-from ..models.solution import Solution
-from ..models.employee import Employee
-from ..models.shift import Shift
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.models.shift import Shift
 
 
 class OptimizerStrategy(ABC):

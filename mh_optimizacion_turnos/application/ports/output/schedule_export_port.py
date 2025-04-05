@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from ....domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.models.solution import Solution
 
 
 class ScheduleExportPort(ABC):

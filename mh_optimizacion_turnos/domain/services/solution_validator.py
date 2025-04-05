@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import List, Dict
 from collections import defaultdict
 
-from ..models.solution import Solution
-from ..models.employee import Employee
-from ..models.shift import Shift
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.models.shift import Shift
 
 
 @dataclass

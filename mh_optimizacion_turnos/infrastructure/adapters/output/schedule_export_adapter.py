@@ -3,10 +3,10 @@ import pandas as pd
 from typing import Dict, Any, List
 import logging
 
-from ....application.ports.output.schedule_export_port import ScheduleExportPort
-from ....domain.models.solution import Solution
-from ....domain.repositories.employee_repository import EmployeeRepository
-from ....domain.repositories.shift_repository import ShiftRepository
+from mh_optimizacion_turnos.application.ports.output.schedule_export_port import ScheduleExportPort
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.repositories.employee_repository import EmployeeRepository
+from mh_optimizacion_turnos.domain.repositories.shift_repository import ShiftRepository
 
 
 logger = logging.getLogger(__name__)

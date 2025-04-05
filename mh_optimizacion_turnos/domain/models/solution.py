@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 from uuid import UUID
 
-from .assignment import Assignment
+from mh_optimizacion_turnos.domain.models.assignment import Assignment
 
 
 @dataclass

@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict
 from uuid import UUID
 
-from ...domain.models.employee import Employee
-from ...domain.repositories.employee_repository import EmployeeRepository
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.repositories.employee_repository import EmployeeRepository
 
 
 class InMemoryEmployeeRepository(EmployeeRepository):

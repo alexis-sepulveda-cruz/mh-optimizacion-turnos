@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 
-from ....domain.models.solution import Solution
-from ....domain.services.optimizer_strategy import OptimizerStrategy
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
 
 
 class ShiftAssignmentServicePort(ABC):

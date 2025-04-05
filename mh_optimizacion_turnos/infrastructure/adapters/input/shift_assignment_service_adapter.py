@@ -1,12 +1,12 @@
 from typing import Dict, Any, List, Optional
 import logging
 
-from ....application.ports.input.shift_assignment_service_port import ShiftAssignmentServicePort
-from ....domain.models.solution import Solution
-from ....domain.services.shift_optimizer_service import ShiftOptimizerService
-from ....domain.services.optimizers.genetic_algorithm_optimizer import GeneticAlgorithmOptimizer
-from ....domain.services.optimizers.tabu_search_optimizer import TabuSearchOptimizer
-from ....domain.services.optimizers.grasp_optimizer import GraspOptimizer
+from mh_optimizacion_turnos.application.ports.input.shift_assignment_service_port import ShiftAssignmentServicePort
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.services.shift_optimizer_service import ShiftOptimizerService
+from mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer import GeneticAlgorithmOptimizer
+from mh_optimizacion_turnos.domain.services.optimizers.tabu_search_optimizer import TabuSearchOptimizer
+from mh_optimizacion_turnos.domain.services.optimizers.grasp_optimizer import GraspOptimizer
 
 
 logger = logging.getLogger(__name__)

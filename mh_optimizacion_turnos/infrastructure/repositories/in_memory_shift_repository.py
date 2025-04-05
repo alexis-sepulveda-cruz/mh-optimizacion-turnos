@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict
 from uuid import UUID
 
-from ...domain.models.shift import Shift
-from ...domain.repositories.shift_repository import ShiftRepository
+from mh_optimizacion_turnos.domain.models.shift import Shift
+from mh_optimizacion_turnos.domain.repositories.shift_repository import ShiftRepository
 
 
 class InMemoryShiftRepository(ShiftRepository):
@@ -38,7 +38,7 @@ class InMemoryShiftRepository(ShiftRepository):
         
         En una implementación real, esto convertiría las fechas a objetos datetime
         y filtraría los turnos según sus fechas. Para esta implementación simplificada,
-        asumiremos que day es una cadena que representará la fecha.
+        asumiremos que day es una cadena que representará la fecha en cualquier formato.
         """
         # En una implementación real, haríamos una comparación de fechas
         # Por ahora, asumimos que day es un string que contiene la fecha en cualquier formato

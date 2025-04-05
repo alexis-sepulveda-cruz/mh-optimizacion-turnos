@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from uuid import UUID
 
-from ..models.shift import Shift
+from mh_optimizacion_turnos.domain.models.shift import Shift
 
 
 class ShiftRepository(ABC):

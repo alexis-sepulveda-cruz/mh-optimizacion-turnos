@@ -1,13 +1,13 @@
 from typing import Dict, Any, Optional
 import logging
 
-from ..models.solution import Solution
-from ..models.employee import Employee
-from ..models.shift import Shift
-from ..repositories.employee_repository import EmployeeRepository
-from ..repositories.shift_repository import ShiftRepository
-from .optimizer_strategy import OptimizerStrategy
-from .solution_validator import SolutionValidator
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.models.shift import Shift
+from mh_optimizacion_turnos.domain.repositories.employee_repository import EmployeeRepository
+from mh_optimizacion_turnos.domain.repositories.shift_repository import ShiftRepository
+from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
+from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
 
 
 logger = logging.getLogger(__name__)

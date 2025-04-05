@@ -2,12 +2,12 @@ import random
 import logging
 from typing import List, Dict, Any
 
-from ..optimizer_strategy import OptimizerStrategy
-from ..solution_validator import SolutionValidator
-from ...models.solution import Solution
-from ...models.employee import Employee
-from ...models.shift import Shift
-from ...models.assignment import Assignment
+from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
+from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
+from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.models.employee import Employee
+from mh_optimizacion_turnos.domain.models.shift import Shift
+from mh_optimizacion_turnos.domain.models.assignment import Assignment
 
 
 logger = logging.getLogger(__name__)

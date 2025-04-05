@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from uuid import UUID
 
-from ..models.employee import Employee
+from mh_optimizacion_turnos.domain.models.employee import Employee
 
 
 class EmployeeRepository(ABC):
