@@ -8,15 +8,49 @@ from uuid import UUID, uuid4
 class Shift:
     """Representa un turno en el sistema de asignación de turnos."""
     
-    name: str
-    day: str  # puede ser 'lunes' o una fecha específica como '2025-04-01'
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
-    duration_hours: float = 8.0  # duración en horas
-    required_employees: int = 1
-    priority: int = 1  # 1-10, con 10 siendo la mayor prioridad
-    required_skills: Set[str] = field(default_factory=set)
-    id: UUID = field(default_factory=uuid4)
+    name: str = field(
+        metadata={"description": "Nombre identificativo del turno"}
+    )
+    day: str = field(
+        metadata={
+            "description": "Día del turno, puede ser 'martes' o una fecha específica "
+                        "como '2025-04-01'"
+        }
+    )
+    start_time: Optional[time] = field(
+        default=None,
+        metadata={"description": "Hora de inicio del turno"}
+    )
+    end_time: Optional[time] = field(
+        default=None,
+        metadata={"description": "Hora de finalización del turno"}
+    )
+    duration_hours: float = field(
+        default=8.0,
+        metadata={"description": "Duración del turno en horas"}
+    )
+    required_employees: int = field(
+        default=1,
+        metadata={"description": "Número de empleados necesarios para este turno"}
+    )
+    priority: int = field(
+        default=1,
+        metadata={
+            "description": "Prioridad del turno en escala 1-10, siendo 10 la mayor "
+                        "prioridad"
+        }
+    )
+    required_skills: Set[str] = field(
+        default_factory=set,
+        metadata={
+            "description": "Conjunto de habilidades requeridas para poder cubrir "
+                        "este turno"
+        }
+    )
+    id: UUID = field(
+        default_factory=uuid4,
+        metadata={"description": "Identificador único del turno"}
+    )
     
     def add_required_skill(self, skill: str) -> None:
         """Añade una habilidad requerida para el turno.
@@ -53,7 +87,8 @@ class Shift:
             
             # Si el turno termina al día siguiente
             if end_dt < start_dt:
-                end_dt = datetime.combine(datetime.today().replace(day=datetime.today().day + 1), end)
+                end_dt = datetime.combine(datetime.today().replace(
+                    day=datetime.today().day + 1), end)
             
             # Calcular la diferencia en horas
             self.duration_hours = (end_dt - start_dt).total_seconds() / 3600.0

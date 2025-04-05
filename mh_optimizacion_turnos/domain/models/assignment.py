@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
 
@@ -6,9 +6,16 @@ from uuid import UUID
 class Assignment:
     """Representa una asignación de un empleado a un turno."""
     
-    employee_id: UUID
-    shift_id: UUID
-    cost: float = 0.0  # Costo de esta asignación específica
+    employee_id: UUID = field(
+        metadata={"description": "Identificador único del empleado asignado"}
+    )
+    shift_id: UUID = field(
+        metadata={"description": "Identificador único del turno asignado"}
+    )
+    cost: float = field(
+        default=0.0, 
+        metadata={"description": "Costo asociado a esta asignación específica"}
+    )
     
     def __hash__(self) -> int:
         return hash((self.employee_id, self.shift_id))

@@ -7,14 +7,48 @@ from uuid import UUID, uuid4
 class Employee:
     """Representa un empleado en el sistema de asignación de turnos."""
     
-    name: str
-    skills: Set[str] = field(default_factory=set)
-    hourly_cost: float = 10.0
-    max_hours_per_week: float = 40.0
-    max_consecutive_days: int = 5
-    availability: Dict[str, List[str]] = field(default_factory=dict)
-    preferences: Dict[str, Dict[str, int]] = field(default_factory=dict)
-    id: UUID = field(default_factory=uuid4)
+    name: str = field(
+        metadata={"description": "Nombre del empleado"}
+    )
+    skills: Set[str] = field(
+        default_factory=set,
+        metadata={"description": "Conjunto de habilidades que posee el empleado"}
+    )
+    hourly_cost: float = field(
+        default=10.0,
+        metadata={"description": "Costo por hora de trabajo del empleado"}
+    )
+    max_hours_per_week: float = field(
+        default=40.0,
+        metadata={
+            "description": "Máximo de horas que el empleado puede trabajar en una semana"
+        }
+    )
+    max_consecutive_days: int = field(
+        default=5,
+        metadata={
+            "description": "Máximo número de días consecutivos que el empleado puede "
+                        "trabajar"
+        }
+    )
+    availability: Dict[str, List[str]] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Diccionario que relaciona días con turnos disponibles. "
+                        "Ejemplo: {'lunes': ['mañana', 'tarde']}"
+        }
+    )
+    preferences: Dict[str, Dict[str, int]] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Preferencias del empleado para días y turnos específicos. "
+                        "Ejemplo: {'lunes': {'mañana': 8, 'tarde': 5}}"
+        }
+    )
+    id: UUID = field(
+        default_factory=uuid4,
+        metadata={"description": "Identificador único del empleado"}
+    )
     
     def is_available(self, day: str, shift_name: str) -> bool:
         """Verifica si el empleado está disponible para un turno y día específicos.

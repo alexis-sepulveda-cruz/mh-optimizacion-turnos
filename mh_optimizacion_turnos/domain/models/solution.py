@@ -9,10 +9,30 @@ from mh_optimizacion_turnos.domain.models.assignment import Assignment
 class Solution:
     """Representa una solución completa al problema de asignación de turnos."""
     
-    assignments: List[Assignment] = field(default_factory=list)
-    total_cost: float = 0.0
-    constraint_violations: int = 0
-    fitness_score: float = 0.0  # Más alto es mejor
+    assignments: List[Assignment] = field(
+        default_factory=list,
+        metadata={
+            "description": "Lista de asignaciones empleado-turno que conforman la solución"
+        }
+    )
+    total_cost: float = field(
+        default=0.0,
+        metadata={
+            "description": "Costo total de la solución, suma de los costos de cada asignación"
+        }
+    )
+    constraint_violations: int = field(
+        default=0,
+        metadata={
+            "description": "Número de restricciones violadas por esta solución"
+        }
+    )
+    fitness_score: float = field(
+        default=0.0,
+        metadata={
+            "description": "Puntuación de aptitud de la solución (más alto es mejor)"
+        }
+    )
     
     def add_assignment(self, assignment: Assignment) -> None:
         """Añadir una asignación a la solución."""
