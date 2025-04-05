@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List, Any
 
+from mh_optimizacion_turnos.domain.models.day import Day
+from mh_optimizacion_turnos.domain.models.shift_type import ShiftType
+from mh_optimizacion_turnos.domain.models.skill import Skill
 from mh_optimizacion_turnos.domain.models.employee import Employee
 from mh_optimizacion_turnos.domain.models.shift import Shift
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
@@ -57,15 +60,15 @@ def setup_test_data():
     shift_repo = InMemoryShiftRepository()
     
     # Crear turnos
-    days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
-    shift_types = ["Mañana", "Tarde", "Noche"]
-    skills = ["Atención al cliente", "Caja", "Inventario", "Limpieza", "Supervisor"]
+    days = [Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, Day.VIERNES]
+    shift_types = [ShiftType.MAÑANA, ShiftType.TARDE, ShiftType.NOCHE]
+    skills = [Skill.ATENCION_AL_CLIENTE, Skill.CAJA, Skill.INVENTARIO, Skill.LIMPIEZA, Skill.SUPERVISOR]
     
     # Horas para cada tipo de turno
     shift_hours = {
-        "Mañana": (datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 16, 0)),
-        "Tarde": (datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 0, 0)),
-        "Noche": (datetime(2025, 1, 1, 0, 0), datetime(2025, 1, 1, 8, 0))
+        ShiftType.MAÑANA: (datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 16, 0)),
+        ShiftType.TARDE: (datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 0, 0)),
+        ShiftType.NOCHE: (datetime(2025, 1, 1, 0, 0), datetime(2025, 1, 1, 8, 0))
     }
     
     # Crear turnos para cada día y tipo
@@ -75,12 +78,12 @@ def setup_test_data():
             required_skills = set()
             
             # Diferentes habilidades requeridas según el turno
-            if shift_type == "Mañana":
-                required_skills = {skills[0], skills[1]}
-            elif shift_type == "Tarde":
-                required_skills = {skills[0], skills[2]}
-            elif shift_type == "Noche":
-                required_skills = {skills[3], skills[4]}
+            if shift_type == ShiftType.MAÑANA:
+                required_skills = {skills[0], skills[1]}  # Atención al cliente, Caja
+            elif shift_type == ShiftType.TARDE:
+                required_skills = {skills[0], skills[2]}  # Atención al cliente, Inventario
+            elif shift_type == ShiftType.NOCHE:
+                required_skills = {skills[3], skills[4]}  # Limpieza, Supervisor
             
             shift = Shift(
                 name=shift_type,
@@ -89,41 +92,65 @@ def setup_test_data():
                 end_time=end_time,
                 required_employees=3,  # Cada turno necesita 3 empleados
                 required_skills=required_skills,
-                priority=2 if shift_type == "Mañana" else 1  # Mañana mayor prioridad
+                priority=2 if shift_type == ShiftType.MAÑANA else 1  # Mañana mayor prioridad
             )
             shift_repo.save(shift)
     
     # Crear empleados
     for i in range(1, 11):  # 10 empleados
+        # Seleccionar aleatoriamente entre 1 y 3 habilidades
+        random_skill_count = np.random.randint(1, 4)
+        # Convertir skills a una lista para poder seleccionar aleatoriamente
+        skills_list = list(skills)
+        # Seleccionar índices aleatorios
+        random_indices = np.random.choice(
+            range(len(skills_list)), 
+            size=random_skill_count, 
+            replace=False
+        )
+        # Crear conjunto de habilidades aleatorias
+        random_skills = {skills_list[i] for i in random_indices}
+        
         employee = Employee(
             name=f"Empleado {i}",
             max_hours_per_week=40,
             max_consecutive_days=5,
-            skills=set(np.random.choice(skills, size=np.random.randint(1, 4), replace=False)),
+            skills=random_skills,
             hourly_cost=np.random.uniform(10, 20)  # Costo por hora entre 10 y 20
         )
         
-        # Definir disponibilidad aleatoria
+        # Definir disponibilidad aleatoria utilizando los enums
         availability = {}
         for day in days:
-            available_shifts = np.random.choice(shift_types, 
-                                              size=np.random.randint(1, len(shift_types) + 1),
-                                              replace=False)
-            availability[day] = list(available_shifts)
+            # Seleccionar aleatoriamente entre 1 y 3 tipos de turnos
+            available_shifts_count = np.random.randint(1, len(shift_types) + 1)
+            # Convertir a lista para facilitar la selección aleatoria
+            shift_types_list = list(shift_types)
+            # Seleccionar turnos aleatorios
+            random_indices = np.random.choice(
+                range(len(shift_types_list)), 
+                size=available_shifts_count,
+                replace=False
+            )
+            available_shifts = [shift_types_list[i] for i in random_indices]
+            availability[day] = available_shifts
         
         employee.availability = availability
         
         # Definir preferencias aleatorias
         preferences = {}
         for day in days:
+            day_str = day.to_string()
             for shift_type in shift_types:
-                if shift_type in availability[day]:
+                # Verificar si este turno está en la disponibilidad del empleado para este día
+                if day in employee.availability and shift_type in employee.availability[day]:
+                    shift_str = shift_type.to_string()
                     # Mayor probabilidad de preferir mañana
-                    if shift_type == "Mañana":
+                    if shift_type == ShiftType.MAÑANA:
                         preference = np.random.randint(3, 6)
                     else:
                         preference = np.random.randint(1, 4)
-                    preferences[f"{day}_{shift_type}"] = preference
+                    preferences[f"{day_str}_{shift_str}"] = preference
         
         employee.preferences = preferences
         employee_repo.save(employee)

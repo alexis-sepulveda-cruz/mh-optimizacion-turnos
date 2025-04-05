@@ -7,6 +7,7 @@ from mh_optimizacion_turnos.application.ports.output.schedule_export_port import
 from mh_optimizacion_turnos.domain.models.solution import Solution
 from mh_optimizacion_turnos.domain.repositories.employee_repository import EmployeeRepository
 from mh_optimizacion_turnos.domain.repositories.shift_repository import ShiftRepository
+from mh_optimizacion_turnos.domain.models.day import Day
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,9 @@ class ScheduleExportAdapter(ScheduleExportPort):
     
     def _export_to_json(self, data: Dict[str, Any], output_path: str = None) -> str:
         """Exporta los datos a formato JSON."""
-        json_str = json.dumps(data, indent=2)
+        # Modificar la estructura de datos para convertir objetos Day a strings
+        serializable_data = self._prepare_data_for_serialization(data)
+        json_str = json.dumps(serializable_data, indent=2)
         
         if output_path:
             with open(output_path, 'w') as f:
@@ -101,12 +104,38 @@ class ScheduleExportAdapter(ScheduleExportPort):
         
         return json_str
     
+    def _prepare_data_for_serialization(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepara los datos para ser serializados, convirtiendo objetos Day a strings."""
+        if not isinstance(data, dict):
+            return data
+            
+        result = {}
+        for key, value in data.items():
+            if key == "assignments" and isinstance(value, list):
+                result[key] = []
+                for assignment in value:
+                    processed_assignment = {}
+                    for k, v in assignment.items():
+                        if k == "day" and isinstance(v, Day):
+                            processed_assignment[k] = v.to_string()
+                        else:
+                            processed_assignment[k] = v
+                    result[key].append(processed_assignment)
+            else:
+                result[key] = value
+        return result
+    
     def _export_to_csv(self, data: Dict[str, Any], output_path: str = None) -> str:
         """Exporta los datos a formato CSV."""
         assignments = data["assignments"]
         
         if not assignments:
             return "No hay asignaciones para exportar"
+        
+        # Convertir objetos Day a strings para CSV
+        for assignment in assignments:
+            if isinstance(assignment.get("day"), Day):
+                assignment["day"] = assignment["day"].to_string()
         
         # Creamos un DataFrame con las asignaciones
         df = pd.DataFrame(assignments)
@@ -128,6 +157,11 @@ class ScheduleExportAdapter(ScheduleExportPort):
         
         if not assignments:
             return "No hay asignaciones para exportar"
+        
+        # Convertir objetos Day a strings para Excel
+        for assignment in assignments:
+            if isinstance(assignment.get("day"), Day):
+                assignment["day"] = assignment["day"].to_string()
         
         # Creamos un DataFrame con las asignaciones
         df = pd.DataFrame(assignments)
@@ -156,9 +190,27 @@ class ScheduleExportAdapter(ScheduleExportPort):
                 assignments_by_day[day] = []
             assignments_by_day[day].append(assignment)
         
-        # Ordenamos los días
-        for day in sorted(assignments_by_day.keys()):
-            lines.append(f"\nDía: {day}")
+        # Ordenamos los días - primero convertimos los objetos Day a strings para ordenar
+        day_order = {}
+        for i, day in enumerate([Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, 
+                               Day.VIERNES, Day.SABADO, Day.DOMINGO]):
+            day_order[day] = i
+            day_order[day.to_string()] = i
+            
+        def get_day_order(day):
+            if isinstance(day, Day):
+                return day_order.get(day, 99)  # Días enum conocidos primero
+            elif day in day_order:
+                return day_order[day]  # Días string conocidos después
+            return 100  # Otros días al final
+        
+        sorted_days = sorted(assignments_by_day.keys(), key=get_day_order)
+        
+        # Ahora iteramos por los días ordenados
+        for day in sorted_days:
+            # Convertir el día a string para la representación
+            day_str = day.to_string() if isinstance(day, Day) else day
+            lines.append(f"\nDía: {day_str}")
             lines.append("-" * 40)
             
             # Ordenamos las asignaciones por hora de inicio
