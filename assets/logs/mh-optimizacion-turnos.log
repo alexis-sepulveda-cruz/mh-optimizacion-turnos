@@ -1,0 +1,239 @@
+2025-04-06 14:14:01,939 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:14:39,034 - __main__ - WARNING - Selección de algoritmos inválida. Ejecutando todos los algoritmos.
+2025-04-06 14:14:46,671 - __main__ - INFO - Iniciando comparación con 5 ejecuciones por algoritmo
+2025-04-06 14:14:46,671 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:14:46,671 - __main__ - INFO - Ejecutando genetic - Corrida 1/5
+2025-04-06 14:14:46,671 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:14:48,128 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:14:48,128 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 10 empleados y 15 turnos
+2025-04-06 14:14:48,128 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:14:48,128 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:14:48,128 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:14:48,158 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.03s)
+2025-04-06 14:14:48,193 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.07s)
+2025-04-06 14:14:48,222 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.09s)
+2025-04-06 14:14:48,244 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.12s)
+2025-04-06 14:14:48,272 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.14s)
+2025-04-06 14:14:48,294 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.17s)
+2025-04-06 14:14:48,325 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.20s)
+2025-04-06 14:14:48,344 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (0.22s)
+2025-04-06 14:14:48,375 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (0.25s)
+2025-04-06 14:14:48,394 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (0.27s)
+2025-04-06 14:14:48,425 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (0.30s)
+2025-04-06 14:14:48,444 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (0.32s)
+2025-04-06 14:14:48,476 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (0.35s)
+2025-04-06 14:14:48,494 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (0.37s)
+2025-04-06 14:14:48,527 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (0.40s)
+2025-04-06 14:14:48,527 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:14:48,528 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 0.40 segundos
+2025-04-06 14:29:28,720 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:29:43,042 - __main__ - WARNING - Selección de algoritmos inválida. Ejecutando todos los algoritmos.
+2025-04-06 14:29:48,830 - __main__ - INFO - Iniciando comparación con 100 ejecuciones por algoritmo
+2025-04-06 14:29:48,830 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:29:48,830 - __main__ - INFO - Ejecutando genetic - Corrida 1/100
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 10 empleados y 15 turnos
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:29:48,844 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:29:48,886 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.04s)
+2025-04-06 14:29:48,924 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.08s)
+2025-04-06 14:29:48,960 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.12s)
+2025-04-06 14:29:48,986 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.14s)
+2025-04-06 14:29:49,036 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.19s)
+2025-04-06 14:29:49,075 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.23s)
+2025-04-06 14:29:49,102 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.26s)
+2025-04-06 14:29:49,152 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (0.31s)
+2025-04-06 14:29:49,192 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (0.35s)
+2025-04-06 14:29:49,227 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (0.38s)
+2025-04-06 14:29:49,252 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (0.41s)
+2025-04-06 14:29:49,302 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (0.46s)
+2025-04-06 14:29:49,340 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (0.50s)
+2025-04-06 14:29:49,377 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (0.53s)
+2025-04-06 14:29:49,402 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (0.56s)
+2025-04-06 14:29:49,402 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:29:49,402 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 0.56 segundos
+2025-04-06 14:49:56,595 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:50:14,506 - __main__ - INFO - Iniciando comparación con 10 ejecuciones por algoritmo
+2025-04-06 14:50:14,506 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:50:14,506 - __main__ - INFO - Ejecutando genetic - Corrida 1/10
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 50 empleados y 15 turnos
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:50:14,506 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:50:14,656 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.15s)
+2025-04-06 14:50:14,777 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.27s)
+2025-04-06 14:50:14,909 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.40s)
+2025-04-06 14:50:15,027 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.52s)
+2025-04-06 14:50:15,160 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.65s)
+2025-04-06 14:50:15,294 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.79s)
+2025-04-06 14:50:15,427 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.92s)
+2025-04-06 14:50:15,560 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (1.05s)
+2025-04-06 14:50:15,695 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (1.19s)
+2025-04-06 14:50:15,827 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (1.32s)
+2025-04-06 14:50:15,944 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (1.44s)
+2025-04-06 14:50:16,077 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (1.57s)
+2025-04-06 14:50:16,210 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (1.70s)
+2025-04-06 14:50:16,327 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (1.82s)
+2025-04-06 14:50:16,459 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (1.95s)
+2025-04-06 14:50:16,459 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:50:16,459 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 1.95 segundos
+2025-04-06 14:51:39,604 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:52:22,401 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:52:27,992 - __main__ - INFO - Iniciando comparación con 5 ejecuciones por algoritmo
+2025-04-06 14:52:27,992 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:52:27,992 - __main__ - INFO - Ejecutando genetic - Corrida 1/5
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 50 empleados y 21 turnos
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:52:27,992 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:52:28,100 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.11s)
+2025-04-06 14:52:28,217 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.22s)
+2025-04-06 14:52:28,317 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.33s)
+2025-04-06 14:52:28,423 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.43s)
+2025-04-06 14:52:28,548 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.56s)
+2025-04-06 14:52:28,678 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.69s)
+2025-04-06 14:52:28,801 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.81s)
+2025-04-06 14:52:28,930 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (0.94s)
+2025-04-06 14:52:29,035 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (1.04s)
+2025-04-06 14:52:29,147 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (1.16s)
+2025-04-06 14:52:29,283 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (1.29s)
+2025-04-06 14:52:29,400 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (1.41s)
+2025-04-06 14:52:29,550 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (1.56s)
+2025-04-06 14:52:29,654 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (1.66s)
+2025-04-06 14:52:29,758 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (1.77s)
+2025-04-06 14:52:29,759 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:52:29,759 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 1.77 segundos
+2025-04-06 14:58:31,296 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:58:39,886 - __main__ - INFO - Iniciando comparación con 5 ejecuciones por algoritmo
+2025-04-06 14:58:39,886 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:58:39,886 - __main__ - INFO - Ejecutando genetic - Corrida 1/5
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 50 empleados y 21 turnos
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:58:39,886 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:58:40,002 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.12s)
+2025-04-06 14:58:40,106 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.22s)
+2025-04-06 14:58:40,214 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.33s)
+2025-04-06 14:58:40,320 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.43s)
+2025-04-06 14:58:40,425 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.54s)
+2025-04-06 14:58:40,530 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.64s)
+2025-04-06 14:58:40,637 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.75s)
+2025-04-06 14:58:40,742 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (0.86s)
+2025-04-06 14:58:40,838 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (0.95s)
+2025-04-06 14:58:40,951 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (1.07s)
+2025-04-06 14:58:41,056 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (1.17s)
+2025-04-06 14:58:41,170 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (1.28s)
+2025-04-06 14:58:41,275 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (1.39s)
+2025-04-06 14:58:41,380 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (1.49s)
+2025-04-06 14:58:41,485 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (1.60s)
+2025-04-06 14:58:41,593 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1600 intentos (1.71s)
+2025-04-06 14:58:41,698 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1700 intentos (1.81s)
+2025-04-06 14:58:41,805 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1800 intentos (1.92s)
+2025-04-06 14:58:41,910 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1900 intentos (2.02s)
+2025-04-06 14:58:42,016 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2000 intentos (2.13s)
+2025-04-06 14:58:42,120 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2100 intentos (2.23s)
+2025-04-06 14:58:42,225 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2200 intentos (2.34s)
+2025-04-06 14:58:42,330 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2300 intentos (2.44s)
+2025-04-06 14:58:42,436 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2400 intentos (2.55s)
+2025-04-06 14:58:42,538 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2500 intentos (2.65s)
+2025-04-06 14:58:42,649 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2600 intentos (2.76s)
+2025-04-06 14:58:42,758 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2700 intentos (2.87s)
+2025-04-06 14:58:42,867 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2800 intentos (2.98s)
+2025-04-06 14:58:42,973 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2900 intentos (3.09s)
+2025-04-06 14:58:43,080 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 3000 intentos (3.19s)
+2025-04-06 14:58:43,081 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:58:43,081 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 3.20 segundos
+2025-04-06 14:58:51,738 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 14:58:56,526 - __main__ - WARNING - Selección de algoritmos inválida. Ejecutando todos los algoritmos.
+2025-04-06 14:59:02,029 - __main__ - INFO - Iniciando comparación con 1000 ejecuciones por algoritmo
+2025-04-06 14:59:02,029 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 14:59:02,029 - __main__ - INFO - Ejecutando genetic - Corrida 1/1000
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 50 empleados y 21 turnos
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 14:59:02,029 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 14:59:02,176 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.15s)
+2025-04-06 14:59:02,303 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.27s)
+2025-04-06 14:59:02,438 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.41s)
+2025-04-06 14:59:02,571 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.54s)
+2025-04-06 14:59:02,704 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.68s)
+2025-04-06 14:59:02,854 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (0.83s)
+2025-04-06 14:59:02,987 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (0.96s)
+2025-04-06 14:59:03,123 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (1.09s)
+2025-04-06 14:59:03,254 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (1.22s)
+2025-04-06 14:59:03,387 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (1.36s)
+2025-04-06 14:59:03,523 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (1.49s)
+2025-04-06 14:59:03,669 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (1.64s)
+2025-04-06 14:59:03,836 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (1.81s)
+2025-04-06 14:59:03,970 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (1.94s)
+2025-04-06 14:59:04,136 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (2.11s)
+2025-04-06 14:59:04,284 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1600 intentos (2.26s)
+2025-04-06 14:59:04,424 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1700 intentos (2.40s)
+2025-04-06 14:59:04,600 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1800 intentos (2.57s)
+2025-04-06 14:59:04,736 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1900 intentos (2.71s)
+2025-04-06 14:59:04,871 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2000 intentos (2.84s)
+2025-04-06 14:59:05,051 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2100 intentos (3.02s)
+2025-04-06 14:59:05,202 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2200 intentos (3.17s)
+2025-04-06 14:59:05,351 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2300 intentos (3.32s)
+2025-04-06 14:59:05,485 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2400 intentos (3.46s)
+2025-04-06 14:59:05,637 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2500 intentos (3.61s)
+2025-04-06 14:59:05,786 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2600 intentos (3.76s)
+2025-04-06 14:59:05,925 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2700 intentos (3.90s)
+2025-04-06 14:59:06,054 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2800 intentos (4.02s)
+2025-04-06 14:59:06,234 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2900 intentos (4.21s)
+2025-04-06 14:59:06,383 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 3000 intentos (4.35s)
+2025-04-06 14:59:06,383 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 14:59:06,384 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 4.35 segundos
+2025-04-06 16:18:58,018 - __main__ - INFO - Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras
+2025-04-06 16:19:04,990 - __main__ - WARNING - Selección de algoritmos inválida. Ejecutando todos los algoritmos.
+2025-04-06 16:19:10,298 - __main__ - INFO - Iniciando comparación con 20 ejecuciones por algoritmo
+2025-04-06 16:19:10,298 - __main__ - INFO - Evaluando algoritmo: genetic
+2025-04-06 16:19:10,299 - __main__ - INFO - Ejecutando genetic - Corrida 1/20
+2025-04-06 16:19:10,299 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Estrategia de optimización establecida a: Genetic Algorithm Optimizer
+2025-04-06 16:19:10,300 - mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter - INFO - Algoritmo establecido: genetic
+2025-04-06 16:19:10,300 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Iniciando optimización con 50 empleados y 21 turnos
+2025-04-06 16:19:10,300 - mh_optimizacion_turnos.domain.services.shift_optimizer_service - INFO - Usando enfoque de restricciones duras - solo se aceptarán soluciones válidas
+2025-04-06 16:19:10,302 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Iniciando optimización con algoritmo genético con 30 individuos para 50 generaciones
+2025-04-06 16:19:10,302 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Usando enfoque de restricciones duras (solo soluciones factibles)
+2025-04-06 16:19:10,480 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 100 intentos (0.18s)
+2025-04-06 16:19:10,653 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 200 intentos (0.35s)
+2025-04-06 16:19:10,823 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 300 intentos (0.52s)
+2025-04-06 16:19:11,026 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 400 intentos (0.72s)
+2025-04-06 16:19:11,201 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 500 intentos (0.90s)
+2025-04-06 16:19:11,368 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 600 intentos (1.07s)
+2025-04-06 16:19:11,555 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 700 intentos (1.25s)
+2025-04-06 16:19:11,734 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 800 intentos (1.43s)
+2025-04-06 16:19:11,894 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 900 intentos (1.59s)
+2025-04-06 16:19:12,080 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1000 intentos (1.78s)
+2025-04-06 16:19:12,263 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1100 intentos (1.96s)
+2025-04-06 16:19:12,418 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1200 intentos (2.12s)
+2025-04-06 16:19:12,616 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1300 intentos (2.31s)
+2025-04-06 16:19:12,785 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1400 intentos (2.48s)
+2025-04-06 16:19:12,951 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1500 intentos (2.65s)
+2025-04-06 16:19:13,106 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1600 intentos (2.80s)
+2025-04-06 16:19:13,269 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1700 intentos (2.97s)
+2025-04-06 16:19:13,430 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1800 intentos (3.13s)
+2025-04-06 16:19:13,602 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 1900 intentos (3.30s)
+2025-04-06 16:19:13,768 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2000 intentos (3.47s)
+2025-04-06 16:19:13,929 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2100 intentos (3.63s)
+2025-04-06 16:19:14,069 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2200 intentos (3.77s)
+2025-04-06 16:19:14,269 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2300 intentos (3.97s)
+2025-04-06 16:19:14,435 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2400 intentos (4.13s)
+2025-04-06 16:19:14,595 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2500 intentos (4.29s)
+2025-04-06 16:19:14,759 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2600 intentos (4.46s)
+2025-04-06 16:19:14,930 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2700 intentos (4.63s)
+2025-04-06 16:19:15,117 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2800 intentos (4.81s)
+2025-04-06 16:19:15,292 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 2900 intentos (4.99s)
+2025-04-06 16:19:15,451 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Generación de población inicial: 0/30 soluciones válidas en 3000 intentos (5.15s)
+2025-04-06 16:19:15,461 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - ERROR - No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.
+2025-04-06 16:19:15,461 - mh_optimizacion_turnos.domain.services.optimizers.genetic_algorithm_optimizer - INFO - Población inicial de 0 soluciones válidas generada en 5.16 segundos
