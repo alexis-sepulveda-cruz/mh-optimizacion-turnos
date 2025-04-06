@@ -36,15 +36,15 @@ from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_servi
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
 
 # Constantes para la configuración de datos de prueba
-NUM_EMPLOYEES = 10          # Número total de empleados a crear
+NUM_EMPLOYEES = 20          # Aumentado de 10 a 20 para tener más empleados disponibles
 MIN_EMPLOYEE_ID = 1         # ID inicial para empleados
 MAX_HOURS_PER_WEEK = 40     # Máximo de horas por semana por empleado
 MAX_CONSECUTIVE_DAYS = 5    # Máximo de días consecutivos por empleado
 MIN_HOURLY_COST = 10.0      # Costo mínimo por hora
 MAX_HOURLY_COST = 20.0      # Costo máximo por hora
-EMPLOYEES_PER_SHIFT = 3     # Número de empleados requeridos por turno
-MIN_EMPLOYEE_SKILLS = 1     # Mínimo de habilidades por empleado
-MAX_EMPLOYEE_SKILLS = 3     # Máximo de habilidades por empleado
+EMPLOYEES_PER_SHIFT = 2     # Reducido de 3 a 2 empleados requeridos por turno
+MIN_EMPLOYEE_SKILLS = 2     # Aumentado de 1 a 2 habilidades mínimas por empleado
+MAX_EMPLOYEE_SKILLS = 4     # Aumentado de 3 a 4 habilidades máximas por empleado
 
 # Constantes para turnos
 MORNING_SHIFT_START = 8     # Hora de inicio turno mañana
@@ -244,7 +244,7 @@ def run_algorithm(service, algorithm, config):
     shift_assignment_count = {}
     for assignment in solution.assignments:
         shift_id = assignment.shift_id
-        if shift_id not in shift_assignment_count:
+        if (shift_id not in shift_assignment_count):
             shift_assignment_count[shift_id] = 0
         shift_assignment_count[shift_id] += 1
     

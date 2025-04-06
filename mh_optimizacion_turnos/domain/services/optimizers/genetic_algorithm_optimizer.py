@@ -1,8 +1,8 @@
 import random
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import time
-
+import collections
 from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
 from mh_optimizacion_turnos.domain.models.solution import Solution
@@ -10,9 +10,7 @@ from mh_optimizacion_turnos.domain.models.employee import Employee
 from mh_optimizacion_turnos.domain.models.shift import Shift
 from mh_optimizacion_turnos.domain.models.assignment import Assignment
 
-
 logger = logging.getLogger(__name__)
-
 
 class GeneticAlgorithmOptimizer(OptimizerStrategy):
     """Implementación de Algoritmo Genético para la optimización de turnos con restricciones duras."""
@@ -22,18 +20,21 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
     
     def get_default_config(self) -> Dict[str, Any]:
         return {
-            "population_size": 50,
-            "generations": 100,
-            "mutation_rate": 0.1,
-            "crossover_rate": 0.8,
-            "elitism_count": 5,
+            "population_size": 30,            # Reducido para enfocarse en calidad
+            "generations": 50,                # Reducido para que las pruebas sean más rápidas
+            "mutation_rate": 0.15,            # Aumentado para más diversidad
+            "crossover_rate": 0.85,           # Aumentado ligeramente
+            "elitism_count": 3,               # Reducido para dar más espacio a soluciones nuevas
             "tournament_size": 3,
-            "max_repair_attempts": 50,  # Número máximo de intentos para reparar soluciones inválidas
-            "validation_timeout": 10,  # Tiempo máximo (segundos) para generar una solución válida
+            "max_initialization_attempts": 1500, # Aumentado para intentar más soluciones iniciales
+            "relaxation_factor": 0.75,        # Nuevo: factor para relajar restricciones temporalmente
+            "max_repair_attempts": 50,        # Intentos para reparar soluciones inválidas
+            "validation_timeout": 15,         # Aumentado: tiempo para generar soluciones válidas
+            "use_constructive_approach": True, # Nuevo: usar enfoque constructivo si aleatorio falla
             "metrics": {
-                "enabled": True,  # Habilitar recolección de métricas
-                "track_evaluations": True,  # Contar número de evaluaciones de función objetivo
-                "track_validation_time": True  # Medir tiempo de validación
+                "enabled": True,
+                "track_evaluations": True,
+                "track_validation_time": True
             }
         }
     
@@ -46,16 +47,19 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
             config = self.get_default_config()
         
         # Extraer parámetros de configuración
-        population_size = config.get("population_size", 50)
-        generations = config.get("generations", 100)
-        mutation_rate = config.get("mutation_rate", 0.1)
-        crossover_rate = config.get("crossover_rate", 0.8)
-        elitism_count = config.get("elitism_count", 5)
+        population_size = config.get("population_size", 30)
+        generations = config.get("generations", 50)
+        mutation_rate = config.get("mutation_rate", 0.15)
+        crossover_rate = config.get("crossover_rate", 0.85)
+        elitism_count = config.get("elitism_count", 3)
         tournament_size = config.get("tournament_size", 3)
         
         # Parámetros de restricciones duras
+        max_initialization_attempts = config.get("max_initialization_attempts", 1500)
         max_repair_attempts = config.get("max_repair_attempts", 50)
-        validation_timeout = config.get("validation_timeout", 10)
+        validation_timeout = config.get("validation_timeout", 15)
+        use_constructive_approach = config.get("use_constructive_approach", True)
+        relaxation_factor = config.get("relaxation_factor", 0.75)
         
         # Inicialización de métricas
         metrics = {
@@ -74,15 +78,17 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         # Inicializar población con soluciones válidas
         start_time = time.time()
         population = self._initialize_valid_population(
-            employees, shifts, population_size, validator, max_repair_attempts, validation_timeout
+            employees, shifts, population_size, validator, 
+            max_initialization_attempts, validation_timeout,
+            use_constructive_approach, relaxation_factor
         )
         initialization_time = time.time() - start_time
-        logger.info(f"Población inicial de {len(population)} soluciones válidas generada en {initialization_time:.2f} segundos")
+        logger.info(f"Población inicial de {len(population)} soluciones generada en {initialization_time:.2f} segundos")
         
         if not population:
-            raise ValueError("No se pudo generar una población inicial con soluciones válidas. Revise las restricciones.")
+            raise ValueError("No se pudo generar ninguna solución válida. Las restricciones son demasiado estrictas o inconsistentes.")
         
-        # Evaluar fitness para la población inicial (ahora solo considera costo, no violaciones)
+        # Evaluar fitness para la población inicial
         fitness_scores = []
         for solution in population:
             fitness = self._calculate_fitness(solution, employees, shifts)
@@ -203,20 +209,47 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         population_size: int,
         validator: SolutionValidator,
         max_attempts: int,
-        timeout: float
+        timeout: float,
+        use_constructive_approach: bool = True,
+        relaxation_factor: float = 0.75
     ) -> List[Solution]:
         """Inicializa una población de soluciones válidas."""
         population = []
         attempts = 0
         start_time = time.time()
         
-        while len(population) < population_size and attempts < max_attempts * population_size:
-            if time.time() - start_time > timeout * population_size:
-                logger.warning(f"Tiempo de inicialización excedido. Se generaron {len(population)} soluciones válidas "
-                             f"de {population_size} requeridas.")
+        max_attempts_per_solution = max(1000, max_attempts // population_size)
+        
+        while len(population) < population_size and attempts < max_attempts:
+            if (len(population) == 0 and attempts >= max_attempts_per_solution) or \
+               (time.time() - start_time > timeout * population_size):
+                if use_constructive_approach and len(population) == 0:
+                    logger.info("Intentando enfoque constructivo para generar la población inicial")
+                    constructive_solution = self._generate_constructive_solution(employees, shifts)
+                    validation_result = validator.validate(constructive_solution, employees, shifts)
+                    if validation_result.is_valid:
+                        self._calculate_solution_cost(constructive_solution, employees, shifts)
+                        population.append(constructive_solution)
+                        # Generar más soluciones como variaciones de esta válida
+                        for _ in range(min(5, population_size - len(population))):
+                            variant = constructive_solution.clone()
+                            self._mutate(variant, employees, shifts, 0.1)  # Mutación ligera
+                            if validator.validate(variant, employees, shifts).is_valid:
+                                self._calculate_solution_cost(variant, employees, shifts)
+                                population.append(variant)
+                
+                # Si aún no hay soluciones válidas, intentar con restricciones relajadas
+                if len(population) == 0:
+                    logger.info("Intentando generar población con restricciones relajadas temporalmente")
+                    relaxed_solutions = self._generate_relaxed_solutions(
+                        employees, shifts, validator, population_size, relaxation_factor
+                    )
+                    population.extend(relaxed_solutions)
+                    logger.info(f"Añadidas {len(relaxed_solutions)} soluciones con restricciones relajadas")
+                
                 break
                 
-            # Generar una solución candidata
+            # Generar una solución candidata aleatoria
             solution = self._generate_candidate_solution(employees, shifts)
             attempts += 1
             
@@ -229,13 +262,10 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                 population.append(solution)
                 
             # Informar progreso
-            if attempts % 100 == 0:
+            if attempts % 500 == 0:
+                success_rate = len(population) / attempts * 100 if attempts > 0 else 0
                 logger.info(f"Generación de población inicial: {len(population)}/{population_size} soluciones válidas "
-                          f"en {attempts} intentos ({(time.time() - start_time):.2f}s)")
-        
-        if not population:
-            # Si no pudimos generar ninguna solución válida, algo está muy mal con las restricciones
-            logger.error("No se pudo generar ninguna solución válida. Las restricciones pueden ser demasiado estrictas.")
+                          f"en {attempts} intentos ({(time.time() - start_time):.2f}s), tasa de éxito: {success_rate:.2f}%")
         
         return population
     
@@ -243,25 +273,114 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         """Genera una solución candidata intentando cumplir con las restricciones desde el inicio."""
         solution = Solution()
         
-        # Dar preferencia a los turnos de mayor prioridad
-        sorted_shifts = sorted(shifts, key=lambda s: s.priority, reverse=True)
-        
-        # Para cada turno, asignar empleados que:
-        # 1. Estén disponibles para ese turno
-        # 2. Tengan las habilidades requeridas
-        # 3. No excedan sus horas máximas
-        # 4. No excedan sus días consecutivos
-        
         # Tracking de horas y días asignados por empleado
         employee_hours = {e.id: 0.0 for e in employees}
         employee_days = {e.id: set() for e in employees}
         
+        # Tracking de empleados por turno y día
+        day_shift_employees = collections.defaultdict(set)
+        
+        # Dar preferencia a los turnos de mayor prioridad y a los que requieren más empleados
+        sorted_shifts = sorted(shifts, key=lambda s: (s.priority, s.required_employees), reverse=True)
+        
         for shift in sorted_shifts:
-            # Identificar empleados que cumplen con todas las restricciones para este turno
-            qualified_employees = []
+            day_shift_key = (shift.day, shift.name)
             
+            # Identificar empleados calificados que aún no han sido asignados a este turno
+            qualified_employees = [
+                e for e in employees
+                if e.id not in day_shift_employees[day_shift_key] and
+                e.is_available(shift.day, shift.name) and
+                shift.required_skills.issubset(e.skills) and
+                employee_hours[e.id] + shift.duration_hours <= e.max_hours_per_week
+            ]
+            
+            # Ordenar por costo y preferencia
+            qualified_employees.sort(
+                key=lambda e: (employee_hours[e.id], 
+                              -e.get_preference_score(shift.day, shift.name),
+                              e.hourly_cost)
+            )
+            
+            # Asignar hasta el número requerido de empleados o los disponibles
+            num_to_assign = min(shift.required_employees, len(qualified_employees))
+            
+            for i in range(num_to_assign):
+                employee = qualified_employees[i]
+                
+                # Crear asignación
+                assignment = Assignment(
+                    employee_id=employee.id,
+                    shift_id=shift.id,
+                    cost=employee.hourly_cost * shift.duration_hours
+                )
+                solution.add_assignment(assignment)
+                
+                # Actualizar registros
+                employee_hours[employee.id] += shift.duration_hours
+                employee_days[employee.id].add(shift.day)
+                day_shift_employees[day_shift_key].add(employee.id)
+        
+        return solution
+    
+    def _generate_constructive_solution(self, employees: List[Employee], shifts: List[Shift]) -> Solution:
+        """Genera una solución usando un enfoque más determinístico y constructivo."""
+        solution = Solution()
+        
+        # Crear mapeos para acceso rápido
+        shift_dict = {s.id: s for s in shifts}
+        employee_dict = {e.id: e for e in employees}
+        
+        # Rastrear asignaciones
+        employee_hours = {e.id: 0.0 for e in employees}
+        employee_days = {e.id: set() for e in employees}
+        day_shift_employees = collections.defaultdict(set)
+        
+        # Ordenar turnos por prioridad (descendente) y días
+        days_order = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
+        sorted_shifts = sorted(shifts, 
+                               key=lambda s: (
+                                   -s.priority,
+                                   days_order.index(s.day.name) if s.day.name in days_order else 999,
+                                   s.name.name  # ShiftType como MAÑANA, TARDE, NOCHE
+                               ))
+        
+        # Primer paso: asociar cada empleado con los turnos para los que está mejor calificado
+        employee_best_shifts = collections.defaultdict(list)
+        
+        for employee in employees:
+            for shift in sorted_shifts:
+                # Verificar calificación básica
+                if (employee.is_available(shift.day, shift.name) and
+                    shift.required_skills.issubset(employee.skills)):
+                    # Calcular puntuación para este turno
+                    preference = employee.get_preference_score(shift.day, shift.name)
+                    cost_efficiency = 1.0 / (employee.hourly_cost + 0.1)  # Inverso del costo
+                    score = preference * cost_efficiency
+                    
+                    employee_best_shifts[employee.id].append((shift, score))
+            
+            # Ordenar turnos para cada empleado por puntuación (mayor primero)
+            employee_best_shifts[employee.id].sort(key=lambda x: x[1], reverse=True)
+        
+        # Segundo paso: Para cada turno, asignar empleados priorizando mejores calificaciones
+        for shift in sorted_shifts:
+            day_shift_key = (shift.day, shift.name)
+            required = shift.required_employees - len(day_shift_employees[day_shift_key])
+            
+            if required <= 0:
+                continue  # Este turno ya está cubierto
+            
+            # Encontrar empleados disponibles y calificados para este turno
+            candidates = []
             for employee in employees:
-                # Verificar disponibilidad
+                emp_id = employee.id
+                
+                # Verificar si ya está asignado a este turno
+                if emp_id in day_shift_employees[day_shift_key]:
+                    continue
+                
+                # Verificar disponibilidad básica
                 if not employee.is_available(shift.day, shift.name):
                     continue
                 
@@ -269,51 +388,86 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                 if not shift.required_skills.issubset(employee.skills):
                     continue
                 
-                # Verificar horas máximas
-                if employee_hours[employee.id] + shift.duration_hours > employee.max_hours_per_week:
+                # Verificar límite de horas
+                if employee_hours[emp_id] + shift.duration_hours > employee.max_hours_per_week:
                     continue
                 
                 # Verificar días consecutivos (simplificado)
-                if shift.day in employee_days[employee.id]:
-                    # Ya tiene un turno ese día, no es problema
-                    pass
-                elif len(employee_days[employee.id]) >= employee.max_consecutive_days:
-                    # Ya alcanzó el máximo de días, pero podría ser compatible si este día está en secuencia
-                    # Simplificación: permitimos siempre que no exceda el número total de días
-                    if len(employee_days[employee.id]) < 7:  # Asumiendo una semana de 7 días
-                        pass
-                    else:
-                        continue
-                
-                # Este empleado cumple con todas las condiciones
-                qualified_employees.append(employee)
+                if shift.day in employee_days[emp_id] or len(employee_days[emp_id]) < employee.max_consecutive_days:
+                    # Este empleado cumple con todas las condiciones
+                    preference = employee.get_preference_score(shift.day, shift.name)
+                    cost = employee.hourly_cost
+                    candidates.append((employee, preference, cost))
             
-            # Si no hay suficientes empleados calificados, podríamos tener problemas
-            if len(qualified_employees) < shift.required_employees:
-                # En un enfoque más avanzado, podríamos aplicar una técnica de reparación aquí
-                # Por ahora, simplemente asignamos los que haya disponibles
-                pass
+            # Ordenar candidatos por preferencia (mayor primero) y costo (menor primero)
+            candidates.sort(key=lambda x: (x[1], -x[2]), reverse=True)
             
-            # Asignar empleados aleatoriamente entre los calificados
-            # (hasta el número requerido o los disponibles)
-            num_to_assign = min(shift.required_employees, len(qualified_employees))
-            if num_to_assign > 0:
-                selected_employees = random.sample(qualified_employees, num_to_assign)
+            # Asignar los mejores candidatos
+            for i in range(min(required, len(candidates))):
+                employee = candidates[i][0]
                 
-                for employee in selected_employees:
-                    # Crear asignación
-                    assignment = Assignment(
-                        employee_id=employee.id,
-                        shift_id=shift.id,
-                        cost=employee.hourly_cost * shift.duration_hours
-                    )
-                    solution.add_assignment(assignment)
-                    
-                    # Actualizar registros
-                    employee_hours[employee.id] += shift.duration_hours
-                    employee_days[employee.id].add(shift.day)
+                # Crear asignación
+                assignment = Assignment(
+                    employee_id=employee.id,
+                    shift_id=shift.id,
+                    cost=employee.hourly_cost * shift.duration_hours
+                )
+                solution.add_assignment(assignment)
+                
+                # Actualizar registros
+                employee_hours[employee.id] += shift.duration_hours
+                employee_days[employee.id].add(shift.day)
+                day_shift_employees[day_shift_key].add(employee.id)
         
         return solution
+    
+    def _generate_relaxed_solutions(
+        self, 
+        employees: List[Employee], 
+        shifts: List[Shift], 
+        validator: SolutionValidator,
+        count: int,
+        relaxation_factor: float
+    ) -> List[Solution]:
+        """Genera soluciones con restricciones relajadas temporalmente."""
+        solutions = []
+        
+        # Generar una solución constructiva relajada para cada requerimiento
+        for _ in range(count):
+            solution = Solution()
+            employees_per_shift = collections.defaultdict(list)  # Para rastrear asignaciones
+            
+            # Dar prioridad a la cobertura básica, relajando algunas restricciones
+            for shift in shifts:
+                # Encontrar empleados que al menos están disponibles en ese día
+                available_employees = [
+                    e for e in employees
+                    if e.is_available(shift.day, shift.name) or random.random() < relaxation_factor
+                ]
+                
+                # Si no hay suficientes empleados incluso con relajación, seguir intentando
+                if len(available_employees) < shift.required_employees:
+                    available_employees = list(employees)
+                
+                # Seleccionar empleados aleatoriamente
+                if available_employees:
+                    # Número requerido o disponible, lo que sea menor
+                    num_to_assign = min(shift.required_employees, len(available_employees))
+                    selected = random.sample(available_employees, num_to_assign)
+                    
+                    for employee in selected:
+                        # Crear asignación
+                        assignment = Assignment(
+                            employee_id=employee.id,
+                            shift_id=shift.id,
+                            cost=employee.hourly_cost * shift.duration_hours
+                        )
+                        solution.add_assignment(assignment)
+                        employees_per_shift[shift.id].append(employee.id)
+            
+            solutions.append(solution)
+        
+        return solutions
     
     def _calculate_fitness(self, solution: Solution, employees: List[Employee], shifts: List[Shift]) -> float:
         """Calcula la puntuación de fitness para una solución considerando solo el costo (sin penalizaciones)."""
@@ -430,7 +584,7 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                           shifts: List[Shift], 
                           mutation_rate: float,
                           validator: SolutionValidator,
-                          max_repair_attempts: int) -> Solution:
+                          max_repair_attempts: int) -> Optional[Solution]:
         """Aplica mutación a una solución y repara si es necesario para mantener factibilidad."""
         if not solution or not solution.assignments:
             return None
