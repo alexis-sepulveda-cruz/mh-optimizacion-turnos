@@ -36,13 +36,13 @@ from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_servi
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
 
 # Constantes para la configuración de datos de prueba
-NUM_EMPLOYEES = 10          # Número total de empleados a crear
+NUM_EMPLOYEES = 50          # Número total de empleados a crear
 MIN_EMPLOYEE_ID = 1         # ID inicial para empleados
 MAX_HOURS_PER_WEEK = 40     # Máximo de horas por semana por empleado
 MAX_CONSECUTIVE_DAYS = 5    # Máximo de días consecutivos por empleado
 MIN_HOURLY_COST = 10.0      # Costo mínimo por hora
 MAX_HOURLY_COST = 20.0      # Costo máximo por hora
-EMPLOYEES_PER_SHIFT = 3     # Número de empleados requeridos por turno
+EMPLOYEES_PER_SHIFT = 8     # Número de empleados requeridos por turno
 MIN_EMPLOYEE_SKILLS = 1     # Mínimo de habilidades por empleado
 MAX_EMPLOYEE_SKILLS = 3     # Máximo de habilidades por empleado
 
@@ -103,9 +103,9 @@ def setup_test_data():
     shift_repo = InMemoryShiftRepository()
     
     # Crear turnos
-    days = [Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, Day.VIERNES]
+    days = [Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, Day.VIERNES, Day.SABADO, Day.DOMINGO]
     shift_types = [ShiftType.MAÑANA, ShiftType.TARDE, ShiftType.NOCHE]
-    skills = [Skill.ATENCION_AL_CLIENTE, Skill.CAJA, Skill.INVENTARIO, Skill.LIMPIEZA, Skill.SUPERVISOR]
+    skills = [Skill.ATENCION_AL_CLIENTE, Skill.MANUFACTURA, Skill.CAJA, Skill.INVENTARIO, Skill.LIMPIEZA, Skill.SUPERVISOR]
     
     # Horas para cada tipo de turno
     shift_hours = {
@@ -125,11 +125,11 @@ def setup_test_data():
             
             # Diferentes habilidades requeridas según el turno
             if shift_type == ShiftType.MAÑANA:
-                required_skills = {skills[0], skills[1]}  # Atención al cliente, Caja
+                required_skills = {skills[0], skills[1],skills[2]}  # Atención al cliente, Caja
             elif shift_type == ShiftType.TARDE:
-                required_skills = {skills[0], skills[2]}  # Atención al cliente, Inventario
+                required_skills = {skills[0], skills[3],skills[1]}  # Atención al cliente, Inventario
             elif shift_type == ShiftType.NOCHE:
-                required_skills = {skills[3], skills[4]}  # Limpieza, Supervisor
+                required_skills = {skills[4], skills[5]}  # Limpieza, Supervisor
             
             shift = Shift(
                 name=shift_type,

@@ -22,14 +22,14 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
     
     def get_default_config(self) -> Dict[str, Any]:
         return {
-            "population_size": 50,
-            "generations": 100,
+            "population_size": 500,
+            "generations": 1000,
             "mutation_rate": 0.1,
             "crossover_rate": 0.8,
             "elitism_count": 5,
             "tournament_size": 3,
-            "max_repair_attempts": 50,  # Número máximo de intentos para reparar soluciones inválidas
-            "validation_timeout": 10,  # Tiempo máximo (segundos) para generar una solución válida
+            "max_repair_attempts": 100,  # Número máximo de intentos para reparar soluciones inválidas
+            "validation_timeout": 100,  # Tiempo máximo (segundos) para generar una solución válida
             "metrics": {
                 "enabled": True,  # Habilitar recolección de métricas
                 "track_evaluations": True,  # Contar número de evaluaciones de función objetivo
@@ -46,16 +46,16 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
             config = self.get_default_config()
         
         # Extraer parámetros de configuración
-        population_size = config.get("population_size", 50)
-        generations = config.get("generations", 100)
+        population_size = config.get("population_size", 500)
+        generations = config.get("generations", 1000)
         mutation_rate = config.get("mutation_rate", 0.1)
         crossover_rate = config.get("crossover_rate", 0.8)
         elitism_count = config.get("elitism_count", 5)
         tournament_size = config.get("tournament_size", 3)
         
         # Parámetros de restricciones duras
-        max_repair_attempts = config.get("max_repair_attempts", 50)
-        validation_timeout = config.get("validation_timeout", 10)
+        max_repair_attempts = config.get("max_repair_attempts", 100)
+        validation_timeout = config.get("validation_timeout", 100)
         
         # Inicialización de métricas
         metrics = {
