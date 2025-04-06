@@ -9,11 +9,15 @@ para optimizar la asignación de turnos a empleados.
 
 import logging
 import sys
+import json
 from datetime import datetime
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, Any
+from pathlib import Path
+import pandas as pd
+import os
+import statistics
 
 from mh_optimizacion_turnos.domain.value_objects.day import Day
 from mh_optimizacion_turnos.domain.value_objects.shift_type import ShiftType
@@ -30,7 +34,6 @@ from mh_optimizacion_turnos.infrastructure.repositories.in_memory_shift_reposito
 
 from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter import ShiftAssignmentServiceAdapter
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
-import os
 
 # Constantes para la configuración de datos de prueba
 NUM_EMPLOYEES = 10          # Número total de empleados a crear
@@ -60,6 +63,7 @@ MIN_MORNING_PREFERENCE = 3  # Preferencia mínima para turno mañana
 MAX_MORNING_PREFERENCE = 6  # Preferencia máxima para turno mañana
 
 # Constantes para algoritmos
+ALGORITHM_RUNS = 5          # Número de ejecuciones para medir consistencia
 GENETIC_POPULATION_SIZE = 30  # Tamaño de población para algoritmo genético
 GENETIC_GENERATIONS = 50      # Número de generaciones para algoritmo genético
 TABU_MAX_ITERATIONS = 50      # Iteraciones para búsqueda tabú
@@ -71,7 +75,10 @@ GRASP_ALPHA = 0.3             # Factor alpha para GRASP
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[
+        logging.FileHandler("./assets/logs/mh-optimizacion-turnos.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 
 logger = logging.getLogger(__name__)
@@ -200,15 +207,69 @@ def setup_test_data():
     return employee_repo, shift_repo
 
 
-def compare_algorithms(service: ShiftAssignmentServiceAdapter, export_adapter: ScheduleExportAdapter, interactive=False):
+def run_algorithm(service, algorithm, config):
+    """Ejecuta un algoritmo y captura métricas de rendimiento."""
+    metrics = {
+        "algorithm": algorithm.to_string(),
+        "start_time": time.time(),
+        "solution": None,
+        "execution_time": None,
+        "cost": None,
+        "fitness": None,
+        "violations": None,  # Siempre será 0 con restricciones duras
+        "assignments_count": None,
+        "coverage_percentage": None
+    }
+    
+    # Establecer el algoritmo
+    service.set_algorithm(algorithm)
+    
+    # Ejecutar el algoritmo
+    solution = service.generate_schedule(algorithm_config=config)
+    
+    # Capturar métricas
+    metrics["execution_time"] = time.time() - metrics["start_time"]
+    metrics["solution"] = solution
+    metrics["cost"] = solution.total_cost
+    metrics["fitness"] = solution.fitness_score
+    metrics["violations"] = solution.constraint_violations
+    metrics["assignments_count"] = len(solution.assignments)
+    
+    # Calcular cobertura
+    shift_repo = service.shift_optimizer_service.shift_repository
+    shifts = shift_repo.get_all()
+    total_required = sum(shift.required_employees for shift in shifts)
+    
+    # Agrupar por turnos para contar asignaciones
+    shift_assignment_count = {}
+    for assignment in solution.assignments:
+        shift_id = assignment.shift_id
+        if shift_id not in shift_assignment_count:
+            shift_assignment_count[shift_id] = 0
+        shift_assignment_count[shift_id] += 1
+    
+    # Calcular porcentaje de cobertura
+    covered_positions = 0
+    for shift in shifts:
+        assigned = shift_assignment_count.get(shift.id, 0)
+        covered = min(assigned, shift.required_employees)
+        covered_positions += covered
+    
+    metrics["coverage_percentage"] = (covered_positions / total_required * 100) if total_required > 0 else 0
+    
+    return metrics
+
+
+def compare_algorithms(service, export_adapter, algorithms=None, runs=ALGORITHM_RUNS, interactive=False):
     """Compara los diferentes algoritmos metaheurísticos."""
-    # Obtener enums de algoritmos disponibles en lugar de strings
-    algorithms = service.get_available_algorithm_enums()
-    results = {}
+    if algorithms is None:
+        algorithms = service.get_available_algorithm_enums()
+    
+    all_results = []
+    algorithm_results = {}
     
     for algorithm in algorithms:
-        logger.info(f"Probando algoritmo: {algorithm.to_string()}")
-        start_time = time.time()
+        logger.info(f"Evaluando algoritmo: {algorithm.to_string()}")
         
         # Configuración específica para cada algoritmo
         if algorithm == AlgorithmType.GENETIC:
@@ -232,72 +293,217 @@ def compare_algorithms(service: ShiftAssignmentServiceAdapter, export_adapter: S
         else:
             config = {"interactive": interactive}
         
-        # Generar solución con el enum directamente
-        solution = service.generate_schedule(algorithm=algorithm, algorithm_config=config)
+        # Ejecutar el algoritmo varias veces para medir consistencia
+        run_results = []
+        for run in range(runs):
+            logger.info(f"Ejecutando {algorithm.to_string()} - Corrida {run+1}/{runs}")
+            
+            if interactive and run > 0:
+                # Preguntar si continuar con las siguientes ejecuciones
+                print(f"\nPrepárando corrida {run+1}/{runs} del algoritmo {algorithm.to_string()}")
+                if not ask_continue_iteration():
+                    logger.info(f"Usuario decidió detener las ejecuciones de {algorithm.to_string()} después de {run} corridas.")
+                    break
+            
+            metrics = run_algorithm(service, algorithm, config)
+            run_results.append(metrics)
+            
+            # Mostrar resultados de esta ejecución
+            logger.info(f"Algoritmo: {metrics['algorithm']}")
+            logger.info(f"Tiempo de ejecución: {metrics['execution_time']:.2f} segundos")
+            logger.info(f"Costo total: {metrics['cost']:.2f}")
+            logger.info(f"Fitness: {metrics['fitness']:.4f}")
+            logger.info(f"Asignaciones: {metrics['assignments_count']}")
+            logger.info(f"Cobertura de turnos: {metrics['coverage_percentage']:.1f}%")
+            logger.info("-" * 50)
+            
+            # Exportar solución como texto
+            solution_text = export_adapter.export_solution(metrics['solution'], ExportFormat.TEXT)
+            logger.info(f"\nSolución #{run+1} con {metrics['algorithm']}:\n{solution_text}\n")
         
-        end_time = time.time()
-        execution_time = end_time - start_time
+        # Guardar todos los resultados
+        all_results.extend(run_results)
         
-        # Almacenar resultados usando el string del enum como clave para mantener compatibilidad
-        algorithm_name = algorithm.to_string()
-        results[algorithm_name] = {
-            "execution_time": execution_time,
-            "cost": solution.total_cost,
-            "violations": solution.constraint_violations,
-            "solution": solution
-        }
-        
-        # Mostrar resultados
-        logger.info(f"Algoritmo: {algorithm_name}")
-        logger.info(f"Tiempo de ejecución: {execution_time:.2f} segundos")
-        logger.info(f"Costo total: {solution.total_cost:.2f}")
-        logger.info(f"Violaciones: {solution.constraint_violations}")
-        logger.info("-" * 50)
-        
-        # Exportar solución como texto usando el enum ExportFormat
-        solution_text = export_adapter.export_solution(solution, ExportFormat.TEXT)
-        logger.info(f"\nSolución con {algorithm_name}:\n{solution_text}\n")
+        # Calcular estadísticas para este algoritmo
+        if run_results:
+            costs = [r["cost"] for r in run_results]
+            times = [r["execution_time"] for r in run_results]
+            fitnesses = [r["fitness"] for r in run_results]
+            coverages = [r["coverage_percentage"] for r in run_results]
+            
+            # Guardar mejores resultados y estadísticas
+            algorithm_results[algorithm.to_string()] = {
+                "runs": len(run_results),
+                "best_solution": min(run_results, key=lambda r: r["cost"])["solution"],
+                "avg_cost": statistics.mean(costs),
+                "std_cost": statistics.stdev(costs) if len(costs) > 1 else 0,
+                "avg_time": statistics.mean(times),
+                "std_time": statistics.stdev(times) if len(times) > 1 else 0,
+                "avg_fitness": statistics.mean(fitnesses),
+                "std_fitness": statistics.stdev(fitnesses) if len(fitnesses) > 1 else 0,
+                "avg_coverage": statistics.mean(coverages),
+                "std_coverage": statistics.stdev(coverages) if len(coverages) > 1 else 0
+            }
     
-    return results
+    return algorithm_results, all_results
 
 
-def plot_comparison(results: Dict[str, Dict[str, Any]]):
+def plot_comparison(results, output_dir="./assets/plots"):
     """Grafica la comparación de resultados entre algoritmos."""
     algorithms = list(results.keys())
     
-    # Crear gráficos
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6))
+    # Crear el directorio si no existe
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    # 1. Gráfico de barras comparando tiempo, costo, fitness y cobertura
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+    
+    # Datos para los gráficos
+    avg_times = [results[algo]["avg_time"] for algo in algorithms]
+    std_times = [results[algo]["std_time"] for algo in algorithms]
+    
+    avg_costs = [results[algo]["avg_cost"] for algo in algorithms]
+    std_costs = [results[algo]["std_cost"] for algo in algorithms]
+    
+    avg_fitness = [results[algo]["avg_fitness"] for algo in algorithms]
+    std_fitness = [results[algo]["std_fitness"] for algo in algorithms]
+    
+    avg_coverage = [results[algo]["avg_coverage"] for algo in algorithms]
+    std_coverage = [results[algo]["std_coverage"] for algo in algorithms]
     
     # Gráfico de tiempo de ejecución
-    execution_times = [results[algo]["execution_time"] for algo in algorithms]
-    ax1.bar(algorithms, execution_times, color='blue')
+    ax1.bar(algorithms, avg_times, yerr=std_times, capsize=5, color='blue', alpha=0.7)
     ax1.set_title('Tiempo de Ejecución')
     ax1.set_ylabel('Tiempo (segundos)')
+    ax1.tick_params(axis='x', rotation=45)
     
     # Gráfico de costo
-    costs = [results[algo]["cost"] for algo in algorithms]
-    ax2.bar(algorithms, costs, color='green')
+    ax2.bar(algorithms, avg_costs, yerr=std_costs, capsize=5, color='green', alpha=0.7)
     ax2.set_title('Costo Total')
     ax2.set_ylabel('Costo')
+    ax2.tick_params(axis='x', rotation=45)
     
-    # Gráfico de violaciones
-    violations = [results[algo]["violations"] for algo in algorithms]
-    ax3.bar(algorithms, violations, color='red')
-    ax3.set_title('Violaciones de Restricciones')
-    ax3.set_ylabel('Número de violaciones')
+    # Gráfico de fitness
+    ax3.bar(algorithms, avg_fitness, yerr=std_fitness, capsize=5, color='purple', alpha=0.7)
+    ax3.set_title('Fitness (mayor es mejor)')
+    ax3.set_ylabel('Fitness')
+    ax3.tick_params(axis='x', rotation=45)
+    
+    # Gráfico de cobertura
+    ax4.bar(algorithms, avg_coverage, yerr=std_coverage, capsize=5, color='red', alpha=0.7)
+    ax4.set_title('Cobertura de Turnos')
+    ax4.set_ylabel('% Cobertura')
+    ax4.tick_params(axis='x', rotation=45)
     
     plt.tight_layout()
+    plt.savefig(f'{output_dir}/comparacion_algoritmos.png')
+    logger.info(f"Gráfico de comparación guardado como '{output_dir}/comparacion_algoritmos.png'")
     
-    # Guardar y mostrar el gráfico
-    os.makedirs('./assets/plots', exist_ok=True)
-    plt.savefig('./assets/plots/comparacion_algoritmos.png')
-    logger.info("Gráfico de comparación guardado como './assets/plots/comparacion_algoritmos.png'")
+    # 2. Gráfico radar para comparar los algoritmos en múltiples dimensiones
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, polar=True)
+    
+    # Categorías para el gráfico radar
+    categories = ['Tiempo\n(inverso)', 'Costo\n(inverso)', 'Fitness', 'Cobertura', 'Consistencia\n(inverso)']
+    N = len(categories)
+    
+    # Ángulos del gráfico (dividimos el espacio por igual)
+    angles = [n / float(N) * 2 * np.pi for n in range(N)]
+    angles += angles[:1]  # Cerrar el polígono
+    
+    # Normalizar los datos para que estén entre 0 y 1
+    max_time = max(avg_times)
+    max_cost = max(avg_costs)
+    max_fitness = max(avg_fitness)
+    max_coverage = max(avg_coverage)
+    max_std = max([results[algo]["std_cost"] / results[algo]["avg_cost"] for algo in algorithms])
+    
+    # Inicializar gráfico radar
+    ax.set_theta_offset(np.pi / 2)  # Rotar para que comience desde arriba
+    ax.set_theta_direction(-1)      # Dirección horaria
+    
+    # Establecer los límites del radar y las etiquetas
+    ax.set_ylim(0, 1)
+    plt.xticks(angles[:-1], categories)
+    
+    # Dibujar para cada algoritmo
+    for i, algorithm in enumerate(algorithms):
+        # Normalizar y convertir los valores (para tiempo, costo y std, menor es mejor, así que invertimos)
+        values = [
+            1 - (results[algorithm]["avg_time"] / max_time if max_time > 0 else 0),  # Tiempo (inverso)
+            1 - (results[algorithm]["avg_cost"] / max_cost if max_cost > 0 else 0),  # Costo (inverso) 
+            results[algorithm]["avg_fitness"] / max_fitness if max_fitness > 0 else 0,  # Fitness
+            results[algorithm]["avg_coverage"] / 100.0,  # Cobertura (ya está en %)
+            1 - ((results[algorithm]["std_cost"] / results[algorithm]["avg_cost"]) / max_std if max_std > 0 else 0)  # Consistencia (inverso)
+        ]
+        values += values[:1]  # Cerrar el polígono
+        
+        # Dibujar el polígono y agregar etiqueta
+        ax.plot(angles, values, linewidth=2, label=algorithm)
+        ax.fill(angles, values, alpha=0.25)
+    
+    # Añadir leyenda y título
+    plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+    plt.title('Comparación multidimensional de algoritmos', size=15, y=1.1)
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/comparacion_radar.png')
+    logger.info(f"Gráfico radar guardado como '{output_dir}/comparacion_radar.png'")
+    
+    # 3. Exportar resultados a CSV
+    results_df = pd.DataFrame({
+        'Algoritmo': algorithms,
+        'Tiempo_Ejecucion_Promedio': avg_times,
+        'Tiempo_Ejecucion_Desviacion': std_times,
+        'Costo_Promedio': avg_costs,
+        'Costo_Desviacion': std_costs,
+        'Fitness_Promedio': avg_fitness,
+        'Fitness_Desviacion': std_fitness,
+        'Cobertura_Promedio': avg_coverage,
+        'Cobertura_Desviacion': std_coverage,
+        'Corridas': [results[algo]["runs"] for algo in algorithms]
+    })
+    
+    csv_path = f'{output_dir}/resultados_comparacion.csv'
+    results_df.to_csv(csv_path, index=False)
+    logger.info(f"Resultados de comparación exportados a '{csv_path}'")
+    
+    # Exportar las mejores soluciones de cada algoritmo como JSON
+    best_solutions = {}
+    for algorithm in algorithms:
+        # Serializar la mejor solución
+        best_solution = results[algorithm]["best_solution"]
+        serialized_assignments = []
+        
+        for assignment in best_solution.assignments:
+            serialized_assignments.append({
+                'employee_id': str(assignment.employee_id),
+                'shift_id': str(assignment.shift_id),
+                'cost': assignment.cost
+            })
+        
+        best_solutions[algorithm] = {
+            'cost': best_solution.total_cost,
+            'fitness': best_solution.fitness_score,
+            'assignments_count': len(best_solution.assignments),
+            'assignments': serialized_assignments
+        }
+    
+    json_path = f'{output_dir}/mejores_soluciones.json'
+    with open(json_path, 'w') as f:
+        json.dump(best_solutions, f, indent=2)
+    logger.info(f"Mejores soluciones exportadas a '{json_path}'")
+    
+    # Mostrar los gráficos
     plt.show()
 
 
 def main():
     """Función principal de ejemplo."""
-    logger.info("Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo")
+    logger.info("Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras")
+    
+    # Crear el directorio de salida si no existe
+    os.makedirs('./assets/plots', exist_ok=True)
     
     # Configurar datos de prueba
     employee_repo, shift_repo = setup_test_data()
@@ -324,11 +530,57 @@ def main():
     # Preguntar al usuario si desea modo interactivo
     interactive_mode = input("¿Desea ejecutar los algoritmos en modo interactivo? (s/n): ").strip().lower() in ['s', 'si', 'sí', 'y', 'yes']
     
+    # Preguntar al usuario qué algoritmos ejecutar
+    print("Algoritmos disponibles:")
+    for i, algo in enumerate(shift_assignment_service.get_available_algorithms()):
+        print(f"{i+1}. {algo}")
+    
+    selected_indices = input("Seleccione los algoritmos a ejecutar (números separados por coma, o Enter para todos): ")
+    
+    algorithms_to_run = None
+    if selected_indices.strip():
+        try:
+            indices = [int(i.strip()) - 1 for i in selected_indices.split(',')]
+            available_algos = shift_assignment_service.get_available_algorithm_enums()
+            algorithms_to_run = [available_algos[i] for i in indices if 0 <= i < len(available_algos)]
+        except (ValueError, IndexError):
+            logger.warning("Selección de algoritmos inválida. Ejecutando todos los algoritmos.")
+    
+    # Preguntar cuántas ejecuciones por algoritmo
+    runs = ALGORITHM_RUNS
+    try:
+        user_runs = input(f"Número de ejecuciones por algoritmo para evaluar consistencia (Enter para usar {ALGORITHM_RUNS}): ")
+        if user_runs.strip():
+            runs = max(1, int(user_runs.strip()))
+    except ValueError:
+        logger.warning(f"Entrada inválida. Usando {ALGORITHM_RUNS} ejecuciones por algoritmo.")
+    
     # Ejecutar comparación de algoritmos
-    results = compare_algorithms(shift_assignment_service, export_adapter, interactive=interactive_mode)
+    logger.info(f"Iniciando comparación con {runs} ejecuciones por algoritmo")
+    results, raw_results = compare_algorithms(
+        shift_assignment_service, 
+        export_adapter, 
+        algorithms=algorithms_to_run, 
+        runs=runs, 
+        interactive=interactive_mode
+    )
     
     # Graficar resultados
     plot_comparison(results)
+    
+    # Mostrar resultados en la consola
+    print("\n" + "="*60)
+    print(" RESUMEN DE RESULTADOS ".center(60, "="))
+    print("="*60)
+    
+    for algorithm, stats in results.items():
+        print(f"\nAlgoritmo: {algorithm}")
+        print(f"  Costo promedio: {stats['avg_cost']:.2f} ± {stats['std_cost']:.2f}")
+        print(f"  Fitness promedio: {stats['avg_fitness']:.4f} ± {stats['std_fitness']:.4f}")
+        print(f"  Tiempo promedio: {stats['avg_time']:.2f}s ± {stats['std_time']:.2f}s")
+        print(f"  Cobertura promedio: {stats['avg_coverage']:.1f}% ± {stats['std_coverage']:.1f}%")
+    
+    print("\n" + "="*60)
     
     logger.info("Ejemplo completado con éxito.")
 
