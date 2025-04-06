@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List
 
 from mh_optimizacion_turnos.domain.models.solution import Solution
 from mh_optimizacion_turnos.domain.value_objects.export_format import ExportFormat

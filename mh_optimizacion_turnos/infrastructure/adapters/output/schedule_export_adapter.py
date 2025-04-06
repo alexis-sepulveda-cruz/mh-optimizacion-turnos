@@ -178,7 +178,7 @@ class ScheduleExportAdapter(ScheduleExportPort):
         
         return output_path
     
-    def _export_to_text(self, data: Dict[str, Any]) -> str:
+    def _export_to_text(self, data: Dict[str, Any], output_path: str = None, **kwargs) -> str:
         """Exporta los datos a formato texto (para consola)."""
         assignments = data["assignments"]
         
@@ -235,4 +235,13 @@ class ScheduleExportAdapter(ScheduleExportPort):
         lines.append(f"Costo total: {data['total_cost']:.2f}")
         lines.append(f"Violaciones de restricciones: {data['constraint_violations']}")
         
-        return "\n".join(lines)
+        text_output = "\n".join(lines)
+        
+        # Si se proporciona una ruta de salida, guardar el resultado
+        if output_path:
+            with open(output_path, 'w') as f:
+                f.write(text_output)
+            logger.info(f"Solución exportada a texto: {output_path}")
+            return output_path
+        
+        return text_output
