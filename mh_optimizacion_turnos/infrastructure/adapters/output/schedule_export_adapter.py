@@ -1,13 +1,14 @@
 import json
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 import logging
 
 from mh_optimizacion_turnos.application.ports.output.schedule_export_port import ScheduleExportPort
 from mh_optimizacion_turnos.domain.models.solution import Solution
 from mh_optimizacion_turnos.domain.repositories.employee_repository import EmployeeRepository
 from mh_optimizacion_turnos.domain.repositories.shift_repository import ShiftRepository
-from mh_optimizacion_turnos.domain.models.day import Day
+from mh_optimizacion_turnos.domain.value_objects.day import Day
+from mh_optimizacion_turnos.domain.value_objects.export_format import ExportFormat
 
 
 logger = logging.getLogger(__name__)
@@ -23,33 +24,38 @@ class ScheduleExportAdapter(ScheduleExportPort):
     def __init__(self, employee_repository: EmployeeRepository, shift_repository: ShiftRepository):
         self.employee_repository = employee_repository
         self.shift_repository = shift_repository
-        self.supported_formats = ["json", "csv", "excel", "text"]
+        self.supported_formats = {
+            ExportFormat.TEXT: self._export_to_text,
+            ExportFormat.CSV: self._export_to_csv,
+            ExportFormat.JSON: self._export_to_json,
+            ExportFormat.EXCEL: self._export_to_excel
+        }
     
     def get_supported_formats(self) -> List[str]:
         """Obtiene la lista de formatos de exportación soportados."""
-        return self.supported_formats
+        return [format_enum.to_string() for format_enum in self.supported_formats.keys()]
     
-    def export_solution(self, solution: Solution, format_type: str, output_path: str = None, **kwargs) -> str:
+    def export_solution(self, solution: Solution, export_format: Union[ExportFormat, str], output_path: str = None, **kwargs) -> str:
         """Exporta una solución de asignación de turnos a varios formatos."""
-        if format_type not in self.supported_formats:
-            raise ValueError(f"Formato no soportado: {format_type}. "
-                           f"Opciones: {', '.join(self.supported_formats)}")
+        # Convertir a enum si se proporciona como string
+        format_enum = export_format
+        if isinstance(export_format, str):
+            try:
+                format_enum = ExportFormat.from_string(export_format)
+            except ValueError:
+                raise ValueError(f"Formato no soportado: {export_format}. "
+                               f"Formatos soportados: {self.get_supported_formats()}")
+        
+        # Verificar si el formato está soportado
+        if format_enum not in self.supported_formats:
+            raise ValueError(f"Formato no soportado: {format_enum}. "
+                           f"Formatos soportados: {self.get_supported_formats()}")
         
         # Primero creamos una representación estructurada de la solución
         structured_data = self._create_structured_data(solution)
         
-        # Exportamos según el formato solicitado
-        if format_type == "json":
-            return self._export_to_json(structured_data, output_path)
-        elif format_type == "csv":
-            return self._export_to_csv(structured_data, output_path)
-        elif format_type == "excel":
-            return self._export_to_excel(structured_data, output_path)
-        elif format_type == "text":
-            return self._export_to_text(structured_data)
-        
-        # Caso por defecto (nunca debería llegar aquí debido a la validación anterior)
-        raise NotImplementedError(f"Exportación a {format_type} no implementada")
+        # Delegar la exportación al método específico
+        return self.supported_formats[format_enum](structured_data, output_path, **kwargs)
     
     def _create_structured_data(self, solution: Solution) -> Dict[str, Any]:
         """Crea una representación estructurada de la solución para exportar."""

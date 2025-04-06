@@ -20,6 +20,7 @@ from mh_optimizacion_turnos.domain.value_objects.day import Day
 from mh_optimizacion_turnos.domain.value_objects.shift_type import ShiftType
 from mh_optimizacion_turnos.domain.value_objects.skill import Skill
 from mh_optimizacion_turnos.domain.value_objects.algorithm_type import AlgorithmType
+from mh_optimizacion_turnos.domain.value_objects.export_format import ExportFormat
 from mh_optimizacion_turnos.domain.models.employee import Employee
 from mh_optimizacion_turnos.domain.models.shift import Shift
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
@@ -203,8 +204,8 @@ def compare_algorithms(service: ShiftAssignmentServiceAdapter, export_adapter: S
         logger.info(f"Violaciones: {solution.constraint_violations}")
         logger.info("-" * 50)
         
-        # Exportar solución como texto
-        solution_text = export_adapter.export_solution(solution, "text")
+        # Exportar solución como texto usando el enum ExportFormat
+        solution_text = export_adapter.export_solution(solution, ExportFormat.TEXT)
         logger.info(f"\nSolución con {algorithm_name}:\n{solution_text}\n")
     
     return results

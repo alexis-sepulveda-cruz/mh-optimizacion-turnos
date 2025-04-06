@@ -1,28 +1,31 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Union
 
 from mh_optimizacion_turnos.domain.models.solution import Solution
+from mh_optimizacion_turnos.domain.value_objects.export_format import ExportFormat
 
 
 class ScheduleExportPort(ABC):
-    """Puerto de salida para exportar soluciones de asignación de turnos.
+    """Puerto de salida para la exportación de cronogramas.
     
     Define la interfaz que los adaptadores de salida utilizarán para exportar
-    las soluciones generadas por el sistema.
+    cronogramas a diferentes formatos.
     """
     
     @abstractmethod
-    def export_solution(self, solution: Solution, format_type: str, output_path: str = None, **kwargs) -> str:
-        """Exporta una solución de asignación de turnos a varios formatos.
+    def export_solution(self, solution: Solution, export_format: Union[ExportFormat, str]) -> str:
+        """Exporta una solución a un formato específico.
         
         Args:
-            solution: La solución a exportar
-            format_type: Tipo de formato ('csv', 'json', 'excel', etc.)
-            output_path: Ruta para guardar el archivo (opcional)
-            kwargs: Parámetros adicionales específicos del formato
+            solution: Solución a exportar
+            export_format: Formato de exportación como enum ExportFormat o string
+                           (text, csv, json, excel)
             
         Returns:
-            Ruta al archivo exportado o representación en cadena de la solución
+            Cadena con la representación de la solución en el formato especificado
+            
+        Raises:
+            ValueError: Si el formato no está soportado
         """
         pass
     
