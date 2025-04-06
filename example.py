@@ -9,12 +9,11 @@ para optimizar la asignación de turnos a empleados.
 
 import logging
 import sys
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 from mh_optimizacion_turnos.domain.value_objects.day import Day
 from mh_optimizacion_turnos.domain.value_objects.shift_type import ShiftType
@@ -31,6 +30,42 @@ from mh_optimizacion_turnos.infrastructure.repositories.in_memory_shift_reposito
 
 from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_service_adapter import ShiftAssignmentServiceAdapter
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
+import os
+
+# Constantes para la configuración de datos de prueba
+NUM_EMPLOYEES = 10          # Número total de empleados a crear
+MIN_EMPLOYEE_ID = 1         # ID inicial para empleados
+MAX_HOURS_PER_WEEK = 40     # Máximo de horas por semana por empleado
+MAX_CONSECUTIVE_DAYS = 5    # Máximo de días consecutivos por empleado
+MIN_HOURLY_COST = 10.0      # Costo mínimo por hora
+MAX_HOURLY_COST = 20.0      # Costo máximo por hora
+EMPLOYEES_PER_SHIFT = 3     # Número de empleados requeridos por turno
+MIN_EMPLOYEE_SKILLS = 1     # Mínimo de habilidades por empleado
+MAX_EMPLOYEE_SKILLS = 3     # Máximo de habilidades por empleado
+
+# Constantes para turnos
+MORNING_SHIFT_START = 8     # Hora de inicio turno mañana
+MORNING_SHIFT_END = 16      # Hora de fin turno mañana
+AFTERNOON_SHIFT_START = 16  # Hora de inicio turno tarde
+AFTERNOON_SHIFT_END = 0     # Hora de fin turno tarde (medianoche)
+NIGHT_SHIFT_START = 0       # Hora de inicio turno noche
+NIGHT_SHIFT_END = 8         # Hora de fin turno noche
+HIGH_PRIORITY = 2           # Prioridad alta para turnos
+NORMAL_PRIORITY = 1         # Prioridad normal para turnos
+
+# Constantes para preferencias
+MIN_REGULAR_PREFERENCE = 1  # Preferencia mínima para turnos regulares
+MAX_REGULAR_PREFERENCE = 4  # Preferencia máxima para turnos regulares
+MIN_MORNING_PREFERENCE = 3  # Preferencia mínima para turno mañana
+MAX_MORNING_PREFERENCE = 6  # Preferencia máxima para turno mañana
+
+# Constantes para algoritmos
+GENETIC_POPULATION_SIZE = 30  # Tamaño de población para algoritmo genético
+GENETIC_GENERATIONS = 50      # Número de generaciones para algoritmo genético
+TABU_MAX_ITERATIONS = 50      # Iteraciones para búsqueda tabú
+TABU_TENURE = 10              # Tenencia tabú para búsqueda tabú
+GRASP_MAX_ITERATIONS = 30     # Iteraciones para GRASP
+GRASP_ALPHA = 0.3             # Factor alpha para GRASP
 
 # Configuración de registro
 logging.basicConfig(
@@ -67,9 +102,12 @@ def setup_test_data():
     
     # Horas para cada tipo de turno
     shift_hours = {
-        ShiftType.MAÑANA: (datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 16, 0)),
-        ShiftType.TARDE: (datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 0, 0)),
-        ShiftType.NOCHE: (datetime(2025, 1, 1, 0, 0), datetime(2025, 1, 1, 8, 0))
+        ShiftType.MAÑANA: (datetime(2025, 1, 1, MORNING_SHIFT_START, 0), 
+                         datetime(2025, 1, 1, MORNING_SHIFT_END, 0)),
+        ShiftType.TARDE: (datetime(2025, 1, 1, AFTERNOON_SHIFT_START, 0), 
+                        datetime(2025, 1, 1, AFTERNOON_SHIFT_END, 0)),
+        ShiftType.NOCHE: (datetime(2025, 1, 1, NIGHT_SHIFT_START, 0), 
+                        datetime(2025, 1, 1, NIGHT_SHIFT_END, 0))
     }
     
     # Crear turnos para cada día y tipo
@@ -91,16 +129,16 @@ def setup_test_data():
                 day=day,
                 start_time=start_time,
                 end_time=end_time,
-                required_employees=3,  # Cada turno necesita 3 empleados
+                required_employees=EMPLOYEES_PER_SHIFT,
                 required_skills=required_skills,
-                priority=2 if shift_type == ShiftType.MAÑANA else 1  # Mañana mayor prioridad
+                priority=HIGH_PRIORITY if shift_type == ShiftType.MAÑANA else NORMAL_PRIORITY
             )
             shift_repo.save(shift)
     
     # Crear empleados
-    for i in range(1, 11):  # 10 empleados
-        # Seleccionar aleatoriamente entre 1 y 3 habilidades
-        random_skill_count = np.random.randint(1, 4)
+    for i in range(MIN_EMPLOYEE_ID, MIN_EMPLOYEE_ID + NUM_EMPLOYEES):
+        # Seleccionar aleatoriamente entre MIN_EMPLOYEE_SKILLS y MAX_EMPLOYEE_SKILLS habilidades
+        random_skill_count = np.random.randint(MIN_EMPLOYEE_SKILLS, MAX_EMPLOYEE_SKILLS + 1)
         # Convertir skills a una lista para poder seleccionar aleatoriamente
         skills_list = list(skills)
         # Seleccionar índices aleatorios
@@ -114,16 +152,16 @@ def setup_test_data():
         
         employee = Employee(
             name=f"Empleado {i}",
-            max_hours_per_week=40,
-            max_consecutive_days=5,
+            max_hours_per_week=MAX_HOURS_PER_WEEK,
+            max_consecutive_days=MAX_CONSECUTIVE_DAYS,
             skills=random_skills,
-            hourly_cost=np.random.uniform(10, 20)  # Costo por hora entre 10 y 20
+            hourly_cost=np.random.uniform(MIN_HOURLY_COST, MAX_HOURLY_COST)
         )
         
         # Definir disponibilidad aleatoria utilizando los enums
         availability = {}
         for day in days:
-            # Seleccionar aleatoriamente entre 1 y 3 tipos de turnos
+            # Seleccionar aleatoriamente entre 1 y el número total de tipos de turnos
             available_shifts_count = np.random.randint(1, len(shift_types) + 1)
             # Convertir a lista para facilitar la selección aleatoria
             shift_types_list = list(shift_types)
@@ -150,9 +188,9 @@ def setup_test_data():
                 if day in employee.availability and shift_type in employee.availability[day]:
                     # Mayor probabilidad de preferir mañana
                     if shift_type == ShiftType.MAÑANA:
-                        preference = np.random.randint(3, 6)
+                        preference = np.random.randint(MIN_MORNING_PREFERENCE, MAX_MORNING_PREFERENCE)
                     else:
-                        preference = np.random.randint(1, 4)
+                        preference = np.random.randint(MIN_REGULAR_PREFERENCE, MAX_REGULAR_PREFERENCE)
                     # Guardar preferencia usando directamente los enums
                     preferences[day][shift_type] = preference
         
@@ -174,11 +212,23 @@ def compare_algorithms(service: ShiftAssignmentServiceAdapter, export_adapter: S
         
         # Configuración específica para cada algoritmo
         if algorithm == AlgorithmType.GENETIC:
-            config = {"population_size": 30, "generations": 50, "interactive": interactive}
+            config = {
+                "population_size": GENETIC_POPULATION_SIZE, 
+                "generations": GENETIC_GENERATIONS, 
+                "interactive": interactive
+            }
         elif algorithm == AlgorithmType.TABU:
-            config = {"max_iterations": 50, "tabu_tenure": 10, "interactive": interactive}
+            config = {
+                "max_iterations": TABU_MAX_ITERATIONS, 
+                "tabu_tenure": TABU_TENURE, 
+                "interactive": interactive
+            }
         elif algorithm == AlgorithmType.GRASP:
-            config = {"max_iterations": 30, "alpha": 0.3, "interactive": interactive}
+            config = {
+                "max_iterations": GRASP_MAX_ITERATIONS, 
+                "alpha": GRASP_ALPHA, 
+                "interactive": interactive
+            }
         else:
             config = {"interactive": interactive}
         
@@ -239,8 +289,9 @@ def plot_comparison(results: Dict[str, Dict[str, Any]]):
     plt.tight_layout()
     
     # Guardar y mostrar el gráfico
-    plt.savefig('comparacion_algoritmos.png')
-    logger.info("Gráfico de comparación guardado como 'comparacion_algoritmos.png'")
+    os.makedirs('./assets/plots', exist_ok=True)
+    plt.savefig('./assets/plots/comparacion_algoritmos.png')
+    logger.info("Gráfico de comparación guardado como './assets/plots/comparacion_algoritmos.png'")
     plt.show()
 
 

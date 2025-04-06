@@ -1,6 +1,7 @@
 import random
 import logging
 from typing import List, Dict, Any
+from collections import defaultdict
 
 from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
 from mh_optimizacion_turnos.domain.services.solution_validator import SolutionValidator
@@ -76,6 +77,9 @@ class GraspOptimizer(OptimizerStrategy):
         # Ordenar turnos por prioridad (descendente)
         sorted_shifts = sorted(shifts, key=lambda s: s.priority, reverse=True)
         
+        # Rastrear qué empleados ya han sido asignados a cada tipo de turno en cada día
+        day_shift_employees = defaultdict(set)
+        
         for shift in sorted_shifts:
             # Encontrar empleados calificados para este turno
             qualified_employees = [
@@ -83,17 +87,23 @@ class GraspOptimizer(OptimizerStrategy):
                 if e.is_available(shift.day, shift.name) and shift.required_skills.issubset(e.skills)
             ]
             
-            if not qualified_employees:
+            # Clave para identificar un tipo de turno en un día específico
+            day_shift_key = (shift.day, shift.name)
+            
+            # Filtrar empleados que ya están asignados a este turno en este día
+            available_employees = [e for e in qualified_employees if e.id not in day_shift_employees[day_shift_key]]
+            
+            if not available_employees:
                 continue
                 
             # Ordenar empleados por costo (ascendente) - menor costo es mejor
-            sorted_employees = sorted(qualified_employees, key=lambda e: e.hourly_cost)
+            sorted_employees = sorted(available_employees, key=lambda e: e.hourly_cost)
             
             # Determinar el tamaño de la RCL (Lista Restringida de Candidatos)
             rcl_size = max(1, int(alpha * len(sorted_employees)))
             
             # Asignar el número requerido de empleados desde la RCL
-            needed_employees = min(shift.required_employees, len(qualified_employees))
+            needed_employees = min(shift.required_employees, len(available_employees))
             for _ in range(needed_employees):
                 # Elegir aleatoriamente de los mejores candidatos (RCL)
                 candidate_pool = sorted_employees[:rcl_size]
@@ -110,6 +120,9 @@ class GraspOptimizer(OptimizerStrategy):
                 )
                 solution.add_assignment(assignment)
                 
+                # Registrar que este empleado ya ha sido asignado a este turno en este día
+                day_shift_employees[day_shift_key].add(selected_employee.id)
+                
                 # Eliminar el empleado seleccionado de los candidatos para evitar doble asignación
                 sorted_employees.remove(selected_employee)
         
@@ -125,6 +138,14 @@ class GraspOptimizer(OptimizerStrategy):
         employee_dict = {e.id: e for e in employees}
         shift_dict = {s.id: s for s in shifts}
         
+        # Rastrear asignaciones actuales por día y tipo de turno
+        day_shift_employees = defaultdict(set)
+        for assignment in current_solution.assignments:
+            shift = shift_dict.get(assignment.shift_id)
+            if shift:
+                day_shift_key = (shift.day, shift.name)
+                day_shift_employees[day_shift_key].add(assignment.employee_id)
+        
         for iteration in range(max_iterations):
             improved = False
             
@@ -135,13 +156,17 @@ class GraspOptimizer(OptimizerStrategy):
                 
                 if not shift:
                     continue
+                
+                # Clave para identificar un tipo de turno en un día específico
+                day_shift_key = (shift.day, shift.name)
                     
-                # Encontrar reemplazos potenciales
+                # Encontrar reemplazos potenciales que no estén ya asignados a este turno en este día
                 potential_replacements = [
                     e for e in employees 
                     if e.id != current_employee_id and
                     e.is_available(shift.day, shift.name) and
-                    shift.required_skills.issubset(e.skills)
+                    shift.required_skills.issubset(e.skills) and
+                    e.id not in day_shift_employees[day_shift_key]
                 ]
                 
                 if not potential_replacements:
@@ -169,6 +194,11 @@ class GraspOptimizer(OptimizerStrategy):
                     if new_fitness > current_fitness:
                         current_solution = new_solution
                         current_fitness = new_fitness
+                        
+                        # Actualizar registro de asignaciones
+                        day_shift_employees[day_shift_key].remove(current_employee_id)
+                        day_shift_employees[day_shift_key].add(new_employee.id)
+                        
                         improved = True
                         break
                 
@@ -182,14 +212,13 @@ class GraspOptimizer(OptimizerStrategy):
                     assigned_count = len([a for a in current_solution.assignments if a.shift_id == shift.id])
                     
                     if assigned_count < shift.required_employees:
-                        # Encontrar empleados que no estén ya asignados a este turno
-                        current_assigned_ids = set(
-                            a.employee_id for a in current_solution.assignments if a.shift_id == shift.id
-                        )
+                        # Clave para identificar un tipo de turno en un día específico
+                        day_shift_key = (shift.day, shift.name)
                         
+                        # Encontrar empleados que no estén ya asignados a este turno
                         available_employees = [
                             e for e in employees 
-                            if e.id not in current_assigned_ids and
+                            if e.id not in day_shift_employees[day_shift_key] and
                             e.is_available(shift.day, shift.name) and
                             shift.required_skills.issubset(e.skills)
                         ]
@@ -200,11 +229,12 @@ class GraspOptimizer(OptimizerStrategy):
                             
                             # Probar el mejor candidato
                             if sorted_employees:
+                                new_employee = sorted_employees[0]
                                 new_solution = current_solution.clone()
                                 new_assignment = Assignment(
-                                    employee_id=sorted_employees[0].id,
+                                    employee_id=new_employee.id,
                                     shift_id=shift.id,
-                                    cost=sorted_employees[0].hourly_cost * shift.duration_hours
+                                    cost=new_employee.hourly_cost * shift.duration_hours
                                 )
                                 new_solution.add_assignment(new_assignment)
                                 
@@ -215,6 +245,10 @@ class GraspOptimizer(OptimizerStrategy):
                                 if new_fitness > current_fitness:
                                     current_solution = new_solution
                                     current_fitness = new_fitness
+                                    
+                                    # Actualizar registro de asignaciones
+                                    day_shift_employees[day_shift_key].add(new_employee.id)
+                                    
                                     improved = True
                                     break
                 
@@ -270,6 +304,10 @@ class GraspOptimizer(OptimizerStrategy):
         employee_availability_violations = 0
         employee_skills_violations = 0
         
+        # Tracking de asignaciones duplicadas
+        day_shift_employees = defaultdict(set)
+        duplicate_assignments = 0
+        
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
             shift_id = assignment.shift_id
@@ -277,6 +315,16 @@ class GraspOptimizer(OptimizerStrategy):
             if emp_id in employee_dict and shift_id in shift_dict:
                 employee = employee_dict[emp_id]
                 shift = shift_dict[shift_id]
+                
+                # Clave para identificar un tipo de turno en un día específico
+                day_shift_key = (shift.day, shift.name)
+                
+                # Verificar si este empleado ya está asignado a este turno en este día
+                if emp_id in day_shift_employees[day_shift_key]:
+                    duplicate_assignments += 1
+                
+                # Registrar esta asignación
+                day_shift_employees[day_shift_key].add(emp_id)
                 
                 # Registrar horas
                 if emp_id not in employee_hours:
@@ -295,6 +343,10 @@ class GraspOptimizer(OptimizerStrategy):
                 # Verificar habilidades requeridas
                 if not shift.required_skills.issubset(employee.skills):
                     employee_skills_violations += len(shift.required_skills - employee.skills)
+        
+        # Penalizar asignaciones duplicadas severamente
+        if duplicate_assignments > 0:
+            violations_count += duplicate_assignments * 10
         
         # Contar violaciones de horas máximas
         hours_violations = 0

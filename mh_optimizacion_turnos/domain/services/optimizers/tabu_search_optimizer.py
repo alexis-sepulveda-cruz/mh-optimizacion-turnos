@@ -1,7 +1,7 @@
 import random
 import logging
 from typing import List, Dict, Any, Tuple
-from collections import deque
+from collections import deque, defaultdict
 
 from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
 from mh_optimizacion_turnos.domain.models.solution import Solution
@@ -125,6 +125,9 @@ class TabuSearchOptimizer(OptimizerStrategy):
         # Ordenar turnos por prioridad (descendente)
         sorted_shifts = sorted(shifts, key=lambda s: s.priority, reverse=True)
         
+        # Rastrear qué empleados ya han sido asignados a cada tipo de turno en cada día
+        day_shift_employees = defaultdict(set)
+        
         for shift in sorted_shifts:
             # Encontrar empleados calificados para este turno
             qualified_employees = [
@@ -135,16 +138,25 @@ class TabuSearchOptimizer(OptimizerStrategy):
             # Ordenar por costo por hora (ascendente)
             qualified_employees.sort(key=lambda e: e.hourly_cost)
             
+            # Clave para identificar un tipo de turno en un día específico
+            day_shift_key = (shift.day, shift.name)
+            
+            # Filtrar empleados que ya están asignados a este turno en este día
+            available_employees = [e for e in qualified_employees if e.id not in day_shift_employees[day_shift_key]]
+            
             # Asignar el número requerido de empleados
-            needed = min(shift.required_employees, len(qualified_employees))
+            needed = min(shift.required_employees, len(available_employees))
             for i in range(needed):
-                employee = qualified_employees[i]
+                employee = available_employees[i]
                 assignment = Assignment(
                     employee_id=employee.id,
                     shift_id=shift.id,
                     cost=employee.hourly_cost * shift.duration_hours
                 )
                 solution.add_assignment(assignment)
+                
+                # Registrar que este empleado ya ha sido asignado a este turno en este día
+                day_shift_employees[day_shift_key].add(employee.id)
         
         solution.calculate_total_cost()
         return solution
@@ -163,6 +175,14 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 shift_assignments[a.shift_id] = []
             shift_assignments[a.shift_id].append(a)
         
+        # Rastrear asignaciones actuales por día y tipo de turno
+        day_shift_employees = defaultdict(set)
+        for assignment in current_solution.assignments:
+            if assignment.shift_id in shift_dict:
+                shift = shift_dict[assignment.shift_id]
+                day_shift_key = (shift.day, shift.name)
+                day_shift_employees[day_shift_key].add(assignment.employee_id)
+        
         # Estrategia 1: Reemplazar Empleado
         for i in range(min(neighborhood_size // 2, len(current_solution.assignments))):
             # Elegir asignación aleatoria para reemplazar
@@ -170,12 +190,16 @@ class TabuSearchOptimizer(OptimizerStrategy):
             shift = shift_dict.get(assignment.shift_id)
             
             if shift:
-                # Encontrar posibles reemplazos
+                # Clave para identificar un tipo de turno en un día específico
+                day_shift_key = (shift.day, shift.name)
+                
+                # Encontrar posibles reemplazos que no estén ya asignados a este tipo de turno en este día
                 available_employees = [
                     e for e in employees 
                     if e.id != assignment.employee_id and
                     e.is_available(shift.day, shift.name) and
-                    shift.required_skills.issubset(e.skills)
+                    shift.required_skills.issubset(e.skills) and
+                    e.id not in day_shift_employees[day_shift_key]
                 ]
                 
                 if available_employees:
@@ -192,6 +216,10 @@ class TabuSearchOptimizer(OptimizerStrategy):
                                 shift_id=assignment.shift_id,
                                 cost=new_employee.hourly_cost * shift.duration_hours
                             )
+                            # Actualizar el registro de empleados asignados
+                            new_day_shift_employees = day_shift_employees.copy()
+                            new_day_shift_employees[day_shift_key].remove(assignment.employee_id)
+                            new_day_shift_employees[day_shift_key].add(new_employee.id)
                             break
                     
                     # Generar una tupla que identifica únicamente este movimiento: (original_emp_id, shift_id, new_emp_id)
@@ -218,13 +246,22 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 employee1 = employee_dict.get(assignment1.employee_id)
                 employee2 = employee_dict.get(assignment2.employee_id)
                 
+                day_shift_key1 = (shift1.day, shift1.name) if shift1 else None
+                day_shift_key2 = (shift2.day, shift2.name) if shift2 else None
+                
                 # Verificar si el intercambio es válido
-                if (employee1 and employee2 and shift1 and shift2 and
+                is_valid = (
+                    employee1 and employee2 and shift1 and shift2 and
                     employee1.is_available(shift2.day, shift2.name) and
                     employee2.is_available(shift1.day, shift1.name) and
                     shift1.required_skills.issubset(employee2.skills) and
-                    shift2.required_skills.issubset(employee1.skills)):
-                    
+                    shift2.required_skills.issubset(employee1.skills) and
+                    # Verificar que los empleados no estén ya asignados a los turnos destino
+                    assignment1.employee_id not in day_shift_employees[day_shift_key2] and
+                    assignment2.employee_id not in day_shift_employees[day_shift_key1]
+                )
+                
+                if is_valid:
                     # Crear nueva solución con el intercambio
                     new_solution = current_solution.clone()
                     
@@ -302,6 +339,10 @@ class TabuSearchOptimizer(OptimizerStrategy):
         employee_availability_violations = 0
         employee_skills_violations = 0
         
+        # Tracking de asignaciones duplicadas
+        day_shift_employees = defaultdict(set)
+        duplicate_assignments = 0
+        
         for assignment in solution.assignments:
             emp_id = assignment.employee_id
             shift_id = assignment.shift_id
@@ -309,6 +350,16 @@ class TabuSearchOptimizer(OptimizerStrategy):
             if emp_id in employee_dict and shift_id in shift_dict:
                 employee = employee_dict[emp_id]
                 shift = shift_dict[shift_id]
+                
+                # Clave para identificar un tipo de turno en un día específico
+                day_shift_key = (shift.day, shift.name)
+                
+                # Verificar si este empleado ya está asignado a este turno en este día
+                if emp_id in day_shift_employees[day_shift_key]:
+                    duplicate_assignments += 1
+                
+                # Registrar esta asignación
+                day_shift_employees[day_shift_key].add(emp_id)
                 
                 # Registrar horas
                 if emp_id not in employee_hours:
@@ -327,6 +378,10 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 # Verificar habilidades requeridas
                 if not shift.required_skills.issubset(employee.skills):
                     employee_skills_violations += len(shift.required_skills - employee.skills)
+        
+        # Penalizar asignaciones duplicadas severamente
+        if duplicate_assignments > 0:
+            violations_count += duplicate_assignments * 10
         
         # Contar violaciones de horas máximas
         hours_violations = 0

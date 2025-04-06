@@ -54,6 +54,9 @@ class SolutionValidator:
         # Verificar disponibilidad de empleados
         self._validate_employee_availability(solution, employee_dict, shift_dict, result)
         
+        # Verificar asignaciones duplicadas 
+        self._validate_duplicate_assignments(solution, employee_dict, shift_dict, shifts, result)
+        
         # Establecer la bandera is_valid si no hay violaciones
         result.is_valid = (result.violations == 0)
         
@@ -153,4 +156,58 @@ class SolutionValidator:
                     result.violations += 1
                     result.violation_details.append(
                         f"El empleado {employee.name} no está disponible para el turno {shift.name} el {shift.day}"
+                    )
+
+    def _validate_duplicate_assignments(self, solution: Solution, employee_dict: Dict[int, Employee],
+                                      shift_dict: Dict[int, Shift], all_shifts: List[Shift], result: ValidationResult) -> None:
+        """Validar que no existan asignaciones duplicadas de turnos.
+        
+        Detecta dos tipos de duplicaciones:
+        1. El mismo empleado asignado al mismo tipo de turno en el mismo día
+        2. El mismo tipo de turno en el mismo día asignado a varios empleados cuando no se requiere
+        """
+        # Crear un registro de asignaciones por día y tipo de turno
+        day_shift_assignments = defaultdict(list)
+        
+        # Registro de empleados asignados por día y tipo de turno
+        day_shift_employees = defaultdict(set)
+        
+        for assignment in solution.assignments:
+            emp_id = assignment.employee_id
+            shift_id = assignment.shift_id
+            
+            if emp_id in employee_dict and shift_id in shift_dict:
+                employee = employee_dict[emp_id]
+                shift = shift_dict[shift_id]
+                
+                # Clave para identificar un tipo de turno en un día específico
+                day_shift_key = (shift.day, shift.name)
+                
+                # Verificar si este empleado ya está asignado a este mismo tipo de turno en el mismo día
+                if emp_id in day_shift_employees[day_shift_key]:
+                    result.violations += 1
+                    result.violation_details.append(
+                        f"El empleado {employee.name} está asignado más de una vez al turno {shift.name} "
+                        f"el día {shift.day}"
+                    )
+                
+                # Añadir esta asignación al registro
+                day_shift_assignments[day_shift_key].append(assignment)
+                day_shift_employees[day_shift_key].add(emp_id)
+        
+        # Verificar si hay más empleados asignados a un mismo turno de lo necesario
+        for (day, shift_type), assignments in day_shift_assignments.items():
+            # Encontrar el objeto shift correspondiente a este día y tipo
+            matching_shifts = [s for s in all_shifts if s.day == day and s.name == shift_type]
+            
+            for shift in matching_shifts:
+                # Contar cuántos empleados están asignados a este turno específico
+                employees_assigned = len(day_shift_employees[(day, shift_type)])
+                
+                # Si hay más de un empleado asignado pero el turno solo necesita uno
+                if employees_assigned > shift.required_employees:
+                    result.violations += 1
+                    result.violation_details.append(
+                        f"El turno {shift_type} del día {day} tiene {employees_assigned} empleados asignados "
+                        f"pero solo requiere {shift.required_employees}"
                     )
