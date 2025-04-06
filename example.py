@@ -103,9 +103,9 @@ def setup_test_data():
     shift_repo = InMemoryShiftRepository()
     
     # Crear turnos
-    days = [Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, Day.VIERNES]
+    days = [Day.LUNES, Day.MARTES, Day.MIERCOLES, Day.JUEVES, Day.VIERNES, Day.SABADO, Day.DOMINGO]
     shift_types = [ShiftType.MAÑANA, ShiftType.TARDE, ShiftType.NOCHE]
-    skills = [Skill.ATENCION_AL_CLIENTE, Skill.CAJA, Skill.INVENTARIO, Skill.LIMPIEZA, Skill.SUPERVISOR]
+    skills = [Skill.ATENCION_AL_CLIENTE, Skill.MANUFACTURA, Skill.CAJA, Skill.INVENTARIO, Skill.LIMPIEZA, Skill.SUPERVISOR]
     
     # Horas para cada tipo de turno
     shift_hours = {
@@ -125,11 +125,11 @@ def setup_test_data():
             
             # Diferentes habilidades requeridas según el turno
             if shift_type == ShiftType.MAÑANA:
-                required_skills = {skills[0], skills[1]}  # Atención al cliente, Caja
+                required_skills = {skills[0], skills[1],skills[2]}  # Atención al cliente, Caja
             elif shift_type == ShiftType.TARDE:
-                required_skills = {skills[0], skills[2]}  # Atención al cliente, Inventario
+                required_skills = {skills[0], skills[3],skills[1]}  # Atención al cliente, Inventario
             elif shift_type == ShiftType.NOCHE:
-                required_skills = {skills[3], skills[4]}  # Limpieza, Supervisor
+                required_skills = {skills[4], skills[5]}  # Limpieza, Supervisor
             
             shift = Shift(
                 name=shift_type,

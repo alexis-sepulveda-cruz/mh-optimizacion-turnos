@@ -7,6 +7,7 @@ class Skill(Enum):
     
     ATENCION_AL_CLIENTE = auto()
     ATENCION_CLIENTE = auto()  # Versión alternativa para compatibilidad
+    MANUFACTURA = auto()
     CAJA = auto()
     INVENTARIO = auto()
     LIMPIEZA = auto()
@@ -29,6 +30,8 @@ class Skill(Enum):
         
         if skill_str_lower in ('atención al cliente', 'atencion al cliente', 'atención cliente', 'atencion cliente'):
             return cls.ATENCION_AL_CLIENTE
+        elif skill_str_lower == 'manufactura':
+            return cls.MANUFACTURA
         elif skill_str_lower == 'caja':
             return cls.CAJA
         elif skill_str_lower == 'inventario':
@@ -48,6 +51,8 @@ class Skill(Enum):
         """
         if self in (self.ATENCION_AL_CLIENTE, self.ATENCION_CLIENTE):
             return "Atención al cliente"
+        elif self == self.MANUFACTURA:
+            return "Manufactura"
         elif self == self.CAJA:
             return "Caja"
         elif self == self.INVENTARIO:
@@ -66,7 +71,8 @@ class Skill(Enum):
         """
         # Excluimos la versión alternativa para evitar duplicados
         return [
-            cls.ATENCION_AL_CLIENTE, 
+            cls.ATENCION_AL_CLIENTE,
+            cls.MANUFACTURA, 
             cls.CAJA, 
             cls.INVENTARIO, 
             cls.LIMPIEZA, 
