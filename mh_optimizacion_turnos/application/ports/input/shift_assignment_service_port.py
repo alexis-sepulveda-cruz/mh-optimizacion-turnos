@@ -3,7 +3,6 @@ from typing import Dict, Any, List, Optional, Union
 
 from mh_optimizacion_turnos.domain.models.solution import Solution
 from mh_optimizacion_turnos.domain.value_objects.algorithm_type import AlgorithmType
-from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
 
 
 class ShiftAssignmentServicePort(ABC):

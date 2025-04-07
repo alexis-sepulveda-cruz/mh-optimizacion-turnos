@@ -1,7 +1,7 @@
 import random
 import logging
 import time
-from typing import List, Dict, Any, Tuple, Optional, Set
+from typing import List, Dict, Any, Tuple, Optional
 from collections import deque, defaultdict
 
 from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
