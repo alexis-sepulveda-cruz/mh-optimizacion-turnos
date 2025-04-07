@@ -36,15 +36,15 @@ from mh_optimizacion_turnos.infrastructure.adapters.input.shift_assignment_servi
 from mh_optimizacion_turnos.infrastructure.adapters.output.schedule_export_adapter import ScheduleExportAdapter
 
 # Constantes para la configuración de datos de prueba
-NUM_EMPLOYEES = 20          # Aumentado de 10 a 20 para tener más empleados disponibles
+NUM_EMPLOYEES = 30          # Aumentado a 30 para tener más opciones de asignación
 MIN_EMPLOYEE_ID = 1         # ID inicial para empleados
 MAX_HOURS_PER_WEEK = 40     # Máximo de horas por semana por empleado
 MAX_CONSECUTIVE_DAYS = 5    # Máximo de días consecutivos por empleado
 MIN_HOURLY_COST = 10.0      # Costo mínimo por hora
 MAX_HOURLY_COST = 20.0      # Costo máximo por hora
-EMPLOYEES_PER_SHIFT = 2     # Reducido de 3 a 2 empleados requeridos por turno
-MIN_EMPLOYEE_SKILLS = 2     # Aumentado de 1 a 2 habilidades mínimas por empleado
-MAX_EMPLOYEE_SKILLS = 4     # Aumentado de 3 a 4 habilidades máximas por empleado
+EMPLOYEES_PER_SHIFT = 1     # Reducido a 1 empleado requerido por turno para simplificar
+MIN_EMPLOYEE_SKILLS = 3     # Aumentado a 3 habilidades mínimas por empleado
+MAX_EMPLOYEE_SKILLS = 6     # Aumentado a 6 habilidades máximas por empleado
 
 # Constantes para turnos
 MORNING_SHIFT_START = 8     # Hora de inicio turno mañana
@@ -63,12 +63,12 @@ MIN_MORNING_PREFERENCE = 3  # Preferencia mínima para turno mañana
 MAX_MORNING_PREFERENCE = 6  # Preferencia máxima para turno mañana
 
 # Constantes para algoritmos
-ALGORITHM_RUNS = 5          # Número de ejecuciones para medir consistencia
-GENETIC_POPULATION_SIZE = 30  # Tamaño de población para algoritmo genético
-GENETIC_GENERATIONS = 50      # Número de generaciones para algoritmo genético
-TABU_MAX_ITERATIONS = 50      # Iteraciones para búsqueda tabú
-TABU_TENURE = 10              # Tenencia tabú para búsqueda tabú
-GRASP_MAX_ITERATIONS = 30     # Iteraciones para GRASP
+ALGORITHM_RUNS = 3          # Reducido a 3 para acelerar las pruebas
+GENETIC_POPULATION_SIZE = 20  # Reducido a 20 para mayor eficiencia
+GENETIC_GENERATIONS = 30      # Reducido a 30 generaciones
+TABU_MAX_ITERATIONS = 40      # Reducido a 40 iteraciones para búsqueda tabú
+TABU_TENURE = 8               # Reducido a 8 para búsqueda tabú
+GRASP_MAX_ITERATIONS = 25     # Reducido a 25 iteraciones para GRASP
 GRASP_ALPHA = 0.3             # Factor alpha para GRASP
 
 # Configuración de registro
