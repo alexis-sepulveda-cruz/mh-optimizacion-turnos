@@ -498,6 +498,121 @@ def plot_comparison(results, output_dir="./assets/plots"):
     plt.show()
 
 
+def find_best_algorithm(results):
+    """
+    Determina cuál fue el algoritmo que mejor se desempeñó basado en múltiples criterios.
+    
+    Args:
+        results (dict): Diccionario con los resultados de cada algoritmo.
+        
+    Returns:
+        tuple: (mejor_algoritmo, criterios_ranking, puntaje_algoritmos)
+    """
+    algorithms = list(results.keys())
+    if not algorithms:
+        return None, {}, {}
+    
+    # Definimos los criterios y su importancia (pesos)
+    criteria = {
+        "costo": {"mejor": "menor", "peso": 0.40},  # El costo es el criterio más importante
+        "cobertura": {"mejor": "mayor", "peso": 0.30},  # La cobertura de turnos es el segundo más importante
+        "fitness": {"mejor": "mayor", "peso": 0.20},  # El fitness es el tercer criterio más importante
+        "tiempo": {"mejor": "menor", "peso": 0.10}   # El tiempo es importante pero menos crítico
+    }
+    
+    # Inicializar diccionario para almacenar puntuaciones
+    scores = {algo: 0.0 for algo in algorithms}
+    rankings = {}
+    
+    # Evaluar cada criterio
+    for criterio, config in criteria.items():
+        if criterio == "costo":
+            values = [results[algo]["avg_cost"] for algo in algorithms]
+            mejor_valor = min(values) if config["mejor"] == "menor" else max(values)
+            # Para costo, un valor más bajo es mejor
+            rankings["costo"] = {
+                algo: results[algo]["avg_cost"] for algo in algorithms
+            }
+            # Calcular puntuación normalizada (valores más bajos son mejores)
+            for algo in algorithms:
+                # Si el mejor es el valor menor, invertimos la normalización
+                if config["mejor"] == "menor":
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = 1 - (results[algo]["avg_cost"] - mejor_valor) / (max_val - mejor_valor) if max_val > mejor_valor else 1
+                else:
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = results[algo]["avg_cost"] / max_val
+                
+                scores[algo] += norm_value * config["peso"]
+        
+        elif criterio == "cobertura":
+            values = [results[algo]["avg_coverage"] for algo in algorithms]
+            mejor_valor = max(values) if config["mejor"] == "mayor" else min(values)
+            # Para cobertura, un valor más alto es mejor
+            rankings["cobertura"] = {
+                algo: results[algo]["avg_coverage"] for algo in algorithms
+            }
+            # Calcular puntuación normalizada
+            for algo in algorithms:
+                if config["mejor"] == "mayor":
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = results[algo]["avg_coverage"] / max_val
+                else:
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = 1 - (results[algo]["avg_coverage"] - mejor_valor) / (max_val - mejor_valor) if max_val > mejor_valor else 1
+                
+                scores[algo] += norm_value * config["peso"]
+        
+        elif criterio == "fitness":
+            values = [results[algo]["avg_fitness"] for algo in algorithms]
+            mejor_valor = max(values) if config["mejor"] == "mayor" else min(values)
+            # Para fitness, un valor más alto es mejor
+            rankings["fitness"] = {
+                algo: results[algo]["avg_fitness"] for algo in algorithms
+            }
+            # Calcular puntuación normalizada
+            for algo in algorithms:
+                if config["mejor"] == "mayor":
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = results[algo]["avg_fitness"] / max_val
+                else:
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = 1 - (results[algo]["avg_fitness"] - mejor_valor) / (max_val - mejor_valor) if max_val > mejor_valor else 1
+                
+                scores[algo] += norm_value * config["peso"]
+        
+        elif criterio == "tiempo":
+            values = [results[algo]["avg_time"] for algo in algorithms]
+            mejor_valor = min(values) if config["mejor"] == "menor" else max(values)
+            # Para tiempo, un valor más bajo es mejor
+            rankings["tiempo"] = {
+                algo: results[algo]["avg_time"] for algo in algorithms
+            }
+            # Calcular puntuación normalizada
+            for algo in algorithms:
+                if config["mejor"] == "menor":
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = 1 - (results[algo]["avg_time"] - mejor_valor) / (max_val - mejor_valor) if max_val > mejor_valor else 1
+                else:
+                    # Evitar división por cero
+                    max_val = max(values) if max(values) > 0 else 1
+                    norm_value = results[algo]["avg_time"] / max_val
+                
+                scores[algo] += norm_value * config["peso"]
+    
+    # Encontrar el algoritmo con la mejor puntuación
+    best_algorithm = max(scores.items(), key=lambda x: x[1])[0]
+    
+    return best_algorithm, rankings, scores
+
+
 def main():
     """Función principal de ejemplo."""
     logger.info("Iniciando ejemplo del Sistema de Asignación Óptima de Turnos de Trabajo con restricciones duras")
@@ -568,6 +683,9 @@ def main():
     # Graficar resultados
     plot_comparison(results)
     
+    # Determinar el mejor algoritmo
+    best_algorithm, rankings, scores = find_best_algorithm(results)
+    
     # Mostrar resultados en la consola
     print("\n" + "="*60)
     print(" RESUMEN DE RESULTADOS ".center(60, "="))
@@ -579,9 +697,81 @@ def main():
         print(f"  Fitness promedio: {stats['avg_fitness']:.4f} ± {stats['std_fitness']:.4f}")
         print(f"  Tiempo promedio: {stats['avg_time']:.2f}s ± {stats['std_time']:.2f}s")
         print(f"  Cobertura promedio: {stats['avg_coverage']:.1f}% ± {stats['std_coverage']:.1f}%")
+        
+        # Resaltar si es el mejor algoritmo
+        if algorithm == best_algorithm:
+            print(f"  ⭐ MEJOR ALGORITMO (Puntaje: {scores[algorithm]:.4f})")
     
+    # Crear un resumen detallado del mejor algoritmo
+    print("\n" + "="*60)
+    print(" ANÁLISIS DEL MEJOR ALGORITMO ".center(60, "="))
+    print("="*60)
+    print(f"El mejor algoritmo según los criterios ponderados es: {best_algorithm}")
+    print(f"Puntuación global: {scores[best_algorithm]:.4f} (escala 0-1)")
+    print("\nCriterios de evaluación:")
+    print(f"  • Costo: {rankings['costo'][best_algorithm]:.2f} (40% del puntaje)")
+    print(f"  • Cobertura: {rankings['cobertura'][best_algorithm]:.2f}% (30% del puntaje)")
+    print(f"  • Fitness: {rankings['fitness'][best_algorithm]:.4f} (20% del puntaje)")
+    print(f"  • Tiempo: {rankings['tiempo'][best_algorithm]:.2f}s (10% del puntaje)")
+    
+    # Explicación de por qué fue el mejor algoritmo
+    best_stats = results[best_algorithm]
+    strengths = []
+    
+    # Analizar fortalezas del mejor algoritmo
+    if best_stats["avg_cost"] == min(results[algo]["avg_cost"] for algo in results):
+        strengths.append("menor costo total")
+    
+    if best_stats["avg_coverage"] == max(results[algo]["avg_coverage"] for algo in results):
+        strengths.append("mayor cobertura de turnos")
+        
+    if best_stats["avg_fitness"] == max(results[algo]["avg_fitness"] for algo in results):
+        strengths.append("mejor fitness")
+        
+    if best_stats["avg_time"] == min(results[algo]["avg_time"] for algo in results):
+        strengths.append("menor tiempo de ejecución")
+    
+    print("\nFortalezas principales:")
+    if strengths:
+        for strength in strengths:
+            print(f"  • {strength.capitalize()}")
+    else:
+        print("  • Mejor equilibrio general entre todos los criterios de evaluación")
+        
     print("\n" + "="*60)
     
+    # Guardar resultados del mejor algoritmo en un archivo separado
+    best_output_dir = "./assets/plots"
+    Path(best_output_dir).mkdir(parents=True, exist_ok=True)
+    
+    best_algorithm_data = {
+        "nombre": best_algorithm,
+        "puntuacion_global": scores[best_algorithm],
+        "criterios": {
+            "costo": rankings["costo"][best_algorithm],
+            "cobertura": rankings["cobertura"][best_algorithm],
+            "fitness": rankings["fitness"][best_algorithm],
+            "tiempo": rankings["tiempo"][best_algorithm]
+        },
+        "metricas": {
+            "costo_promedio": best_stats["avg_cost"],
+            "costo_desviacion": best_stats["std_cost"],
+            "cobertura_promedio": best_stats["avg_coverage"],
+            "cobertura_desviacion": best_stats["std_coverage"],
+            "fitness_promedio": best_stats["avg_fitness"],
+            "fitness_desviacion": best_stats["std_fitness"],
+            "tiempo_promedio": best_stats["avg_time"],
+            "tiempo_desviacion": best_stats["std_time"]
+        },
+        "fortalezas": strengths or ["Mejor equilibrio general"]
+    }
+    
+    best_json_path = f'{best_output_dir}/mejor_algoritmo.json'
+    with open(best_json_path, 'w') as f:
+        json.dump(best_algorithm_data, f, indent=2)
+    logger.info(f"Información del mejor algoritmo exportada a '{best_json_path}'")
+    
+    logger.info(f"El mejor algoritmo según los criterios de optimización es: {best_algorithm}")
     logger.info("Ejemplo completado con éxito.")
 
 
