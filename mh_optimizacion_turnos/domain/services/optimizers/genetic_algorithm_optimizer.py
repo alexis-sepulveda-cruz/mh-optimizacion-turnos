@@ -38,23 +38,31 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
             }
         }
     
+    def _init_metrics(self) -> Dict[str, Any]:
+        """Inicializa y devuelve un diccionario de métricas para seguimiento de rendimiento."""
+        return {
+            "objective_evaluations": 0,
+            "validation_time": 0,
+            "repair_attempts": 0,
+            "repair_success_rate": 0
+        }
+    
     def optimize(self, 
                 employees: List[Employee], 
                 shifts: List[Shift],
                 config: Dict[str, Any] = None) -> Solution:
         """Optimiza la asignación de turnos usando Algoritmo Genético con restricciones duras."""
+        # Usar configuración predeterminada si no se proporciona
         if config is None:
             config = self.get_default_config()
         
-        # Extraer parámetros de configuración
+        # Extraer configuración con valores por defecto
         population_size = config.get("population_size", 30)
         generations = config.get("generations", 50)
         mutation_rate = config.get("mutation_rate", 0.15)
         crossover_rate = config.get("crossover_rate", 0.85)
         elitism_count = config.get("elitism_count", 3)
         tournament_size = config.get("tournament_size", 3)
-        
-        # Parámetros de restricciones duras
         max_initialization_attempts = config.get("max_initialization_attempts", 1500)
         max_repair_attempts = config.get("max_repair_attempts", 50)
         validation_timeout = config.get("validation_timeout", 15)
@@ -62,12 +70,7 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         relaxation_factor = config.get("relaxation_factor", 0.75)
         
         # Inicialización de métricas
-        metrics = {
-            "objective_evaluations": 0,
-            "validation_time": 0,
-            "repair_attempts": 0,
-            "repair_success_rate": 0
-        }
+        metrics = self._init_metrics()
         
         # Crear validador
         validator = SolutionValidator()
@@ -78,9 +81,14 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         # Inicializar población con soluciones válidas
         start_time = time.time()
         population = self._initialize_valid_population(
-            employees, shifts, population_size, validator, 
-            max_initialization_attempts, validation_timeout,
-            use_constructive_approach, relaxation_factor
+            employees=employees, 
+            shifts=shifts, 
+            population_size=population_size, 
+            validator=validator, 
+            max_attempts=max_initialization_attempts, 
+            timeout=validation_timeout,
+            use_constructive_approach=use_constructive_approach, 
+            relaxation_factor=relaxation_factor
         )
         initialization_time = time.time() - start_time
         logger.info(f"Población inicial de {len(population)} soluciones generada en {initialization_time:.2f} segundos")
@@ -89,11 +97,7 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
             raise ValueError("No se pudo generar ninguna solución válida. Las restricciones son demasiado estrictas o inconsistentes.")
         
         # Evaluar fitness para la población inicial
-        fitness_scores = []
-        for solution in population:
-            fitness = self._calculate_fitness(solution, employees, shifts)
-            fitness_scores.append(fitness)
-            metrics["objective_evaluations"] += 1
+        fitness_scores = self._evaluate_population_fitness(population, employees, shifts, metrics)
         
         # Bucle principal del algoritmo genético
         for generation in range(generations):
@@ -157,37 +161,16 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                     break  # Salir del bucle de generación
             
             # Actualizar métricas de reparación
-            metrics["repair_attempts"] += repair_attempts
-            if repair_attempts > 0:
-                current_repair_rate = successful_repairs / repair_attempts
-                # Promedio ponderado con métricas anteriores
-                if metrics["repair_success_rate"] == 0:
-                    metrics["repair_success_rate"] = current_repair_rate
-                else:
-                    metrics["repair_success_rate"] = (
-                        metrics["repair_success_rate"] * 0.7 + current_repair_rate * 0.3
-                    )
+            self._update_repair_metrics(metrics, repair_attempts, successful_repairs)
             
             # Añadir las soluciones elite a la nueva población
             population = new_population + elite_solutions
             
             # Recalcular puntuaciones de fitness
-            fitness_scores = []
-            for solution in population:
-                fitness = self._calculate_fitness(solution, employees, shifts)
-                fitness_scores.append(fitness)
-                metrics["objective_evaluations"] += 1
+            fitness_scores = self._evaluate_population_fitness(population, employees, shifts, metrics)
             
             # Registrar progreso
-            best_fitness = max(fitness_scores)
-            avg_fitness = sum(fitness_scores) / len(fitness_scores)
-            gen_time = time.time() - start_gen_time
-            
-            if generation % 10 == 0 or generation == generations - 1:
-                logger.info(f"Generación {generation}: Mejor fitness = {best_fitness:.4f}, "
-                          f"Fitness promedio = {avg_fitness:.4f}, "
-                          f"Tiempo: {gen_time:.2f}s, "
-                          f"Tasa de reparación: {metrics['repair_success_rate']:.2f}")
+            self._log_generation_progress(generation, generations, fitness_scores, time.time() - start_gen_time, metrics)
         
         # Devolver la mejor solución
         best_idx = fitness_scores.index(max(fitness_scores))
@@ -202,6 +185,41 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         
         return best_solution
     
+    def _update_repair_metrics(self, metrics: Dict[str, Any], repair_attempts: int, successful_repairs: int) -> None:
+        """Actualiza las métricas de reparación basadas en los intentos recientes."""
+        metrics["repair_attempts"] += repair_attempts
+        if repair_attempts > 0:
+            current_repair_rate = successful_repairs / repair_attempts
+            # Promedio ponderado con métricas anteriores
+            if metrics["repair_success_rate"] == 0:
+                metrics["repair_success_rate"] = current_repair_rate
+            else:
+                metrics["repair_success_rate"] = (
+                    metrics["repair_success_rate"] * 0.7 + current_repair_rate * 0.3
+                )
+    
+    def _evaluate_population_fitness(self, population: List[Solution], employees: List[Employee], 
+                                   shifts: List[Shift], metrics: Dict[str, Any]) -> List[float]:
+        """Evalúa la aptitud de todas las soluciones en la población."""
+        fitness_scores = []
+        for solution in population:
+            fitness = self._calculate_fitness(solution, employees, shifts)
+            fitness_scores.append(fitness)
+            metrics["objective_evaluations"] += 1
+        return fitness_scores
+    
+    def _log_generation_progress(self, generation: int, total_generations: int, 
+                              fitness_scores: List[float], gen_time: float, metrics: Dict[str, Any]) -> None:
+        """Registra el progreso de la generación actual."""
+        best_fitness = max(fitness_scores)
+        avg_fitness = sum(fitness_scores) / len(fitness_scores)
+        
+        if generation % 10 == 0 or generation == total_generations - 1:
+            logger.info(f"Generación {generation}: Mejor fitness = {best_fitness:.4f}, "
+                        f"Fitness promedio = {avg_fitness:.4f}, "
+                        f"Tiempo: {gen_time:.2f}s, "
+                        f"Tasa de reparación: {metrics['repair_success_rate']:.2f}")
+
     def _initialize_valid_population(
         self, 
         employees: List[Employee], 
@@ -220,35 +238,8 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         
         max_attempts_per_solution = max(1000, max_attempts // population_size)
         
-        while len(population) < population_size and attempts < max_attempts:
-            if (len(population) == 0 and attempts >= max_attempts_per_solution) or \
-               (time.time() - start_time > timeout * population_size):
-                if use_constructive_approach and len(population) == 0:
-                    logger.info("Intentando enfoque constructivo para generar la población inicial")
-                    constructive_solution = self._generate_constructive_solution(employees, shifts)
-                    validation_result = validator.validate(constructive_solution, employees, shifts)
-                    if validation_result.is_valid:
-                        self._calculate_solution_cost(constructive_solution, employees, shifts)
-                        population.append(constructive_solution)
-                        # Generar más soluciones como variaciones de esta válida
-                        for _ in range(min(5, population_size - len(population))):
-                            variant = constructive_solution.clone()
-                            self._mutate(variant, employees, shifts, 0.1)  # Mutación ligera
-                            if validator.validate(variant, employees, shifts).is_valid:
-                                self._calculate_solution_cost(variant, employees, shifts)
-                                population.append(variant)
-                
-                # Si aún no hay soluciones válidas, intentar con restricciones relajadas
-                if len(population) == 0:
-                    logger.info("Intentando generar población con restricciones relajadas temporalmente")
-                    relaxed_solutions = self._generate_relaxed_solutions(
-                        employees, shifts, validator, population_size, relaxation_factor
-                    )
-                    population.extend(relaxed_solutions)
-                    logger.info(f"Añadidas {len(relaxed_solutions)} soluciones con restricciones relajadas")
-                
-                break
-                
+        # Intentar generar soluciones aleatorias válidas
+        while len(population) < population_size and attempts < max_attempts and (time.time() - start_time <= timeout * population_size):
             # Generar una solución candidata aleatoria
             solution = self._generate_candidate_solution(employees, shifts)
             attempts += 1
@@ -261,11 +252,61 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                 self._calculate_solution_cost(solution, employees, shifts)
                 population.append(solution)
                 
-            # Informar progreso
+            # Informar progreso periódicamente
             if attempts % 500 == 0:
                 success_rate = len(population) / attempts * 100 if attempts > 0 else 0
                 logger.info(f"Generación de población inicial: {len(population)}/{population_size} soluciones válidas "
                           f"en {attempts} intentos ({(time.time() - start_time):.2f}s), tasa de éxito: {success_rate:.2f}%")
+        
+        # Si no se ha generado suficientes soluciones, intentar enfoque constructivo
+        if len(population) < population_size:
+            population = self._try_alternative_population_creation(
+                employees, shifts, population, population_size, validator, 
+                use_constructive_approach, relaxation_factor
+            )
+        
+        return population
+    
+    def _try_alternative_population_creation(
+        self,
+        employees: List[Employee],
+        shifts: List[Shift],
+        existing_population: List[Solution],
+        target_size: int,
+        validator: SolutionValidator,
+        use_constructive_approach: bool = True,
+        relaxation_factor: float = 0.75
+    ) -> List[Solution]:
+        """Intenta estrategias alternativas para crear una población inicial cuando el enfoque aleatorio falla."""
+        population = list(existing_population)  # Copiar la población existente
+        
+        # 1. Intentar enfoque constructivo si está habilitado y no hay soluciones
+        if use_constructive_approach and len(population) == 0:
+            logger.info("Intentando enfoque constructivo para generar la población inicial")
+            constructive_solution = self._generate_constructive_solution(employees, shifts)
+            validation_result = validator.validate(constructive_solution, employees, shifts)
+            
+            if validation_result.is_valid:
+                self._calculate_solution_cost(constructive_solution, employees, shifts)
+                population.append(constructive_solution)
+                
+                # Generar más soluciones como variaciones de esta válida
+                for _ in range(min(5, target_size - len(population))):
+                    variant = constructive_solution.clone()
+                    self._mutate(variant, employees, shifts, 0.1)  # Mutación ligera
+                    if validator.validate(variant, employees, shifts).is_valid:
+                        self._calculate_solution_cost(variant, employees, shifts)
+                        population.append(variant)
+        
+        # 2. Si aún necesitamos más soluciones, intentar con restricciones relajadas
+        if len(population) < target_size:
+            logger.info("Intentando generar población con restricciones relajadas temporalmente")
+            relaxed_count = target_size - len(population)
+            relaxed_solutions = self._generate_relaxed_solutions(
+                employees, shifts, validator, relaxed_count, relaxation_factor
+            )
+            population.extend(relaxed_solutions)
+            logger.info(f"Añadidas {len(relaxed_solutions)} soluciones con restricciones relajadas")
         
         return population
     
@@ -328,7 +369,6 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         solution = Solution()
         
         # Crear mapeos para acceso rápido
-        shift_dict = {s.id: s for s in shifts}
         employee_dict = {e.id: e for e in employees}
         
         # Rastrear asignaciones
@@ -345,25 +385,10 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                                    s.name.name  # ShiftType como MAÑANA, TARDE, NOCHE
                                ))
         
-        # Primer paso: asociar cada empleado con los turnos para los que está mejor calificado
-        employee_best_shifts = collections.defaultdict(list)
+        # Asociar cada empleado con sus turnos más adecuados
+        employee_best_shifts = self._map_employee_best_shifts(employees, sorted_shifts)
         
-        for employee in employees:
-            for shift in sorted_shifts:
-                # Verificar calificación básica
-                if (employee.is_available(shift.day, shift.name) and
-                    shift.required_skills.issubset(employee.skills)):
-                    # Calcular puntuación para este turno
-                    preference = employee.get_preference_score(shift.day, shift.name)
-                    cost_efficiency = 1.0 / (employee.hourly_cost + 0.1)  # Inverso del costo
-                    score = preference * cost_efficiency
-                    
-                    employee_best_shifts[employee.id].append((shift, score))
-            
-            # Ordenar turnos para cada empleado por puntuación (mayor primero)
-            employee_best_shifts[employee.id].sort(key=lambda x: x[1], reverse=True)
-        
-        # Segundo paso: Para cada turno, asignar empleados priorizando mejores calificaciones
+        # Para cada turno, asignar empleados priorizando mejores calificaciones
         for shift in sorted_shifts:
             day_shift_key = (shift.day, shift.name)
             required = shift.required_employees - len(day_shift_employees[day_shift_key])
@@ -372,32 +397,9 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                 continue  # Este turno ya está cubierto
             
             # Encontrar empleados disponibles y calificados para este turno
-            candidates = []
-            for employee in employees:
-                emp_id = employee.id
-                
-                # Verificar si ya está asignado a este turno
-                if emp_id in day_shift_employees[day_shift_key]:
-                    continue
-                
-                # Verificar disponibilidad básica
-                if not employee.is_available(shift.day, shift.name):
-                    continue
-                
-                # Verificar habilidades
-                if not shift.required_skills.issubset(employee.skills):
-                    continue
-                
-                # Verificar límite de horas
-                if employee_hours[emp_id] + shift.duration_hours > employee.max_hours_per_week:
-                    continue
-                
-                # Verificar días consecutivos (simplificado)
-                if shift.day in employee_days[emp_id] or len(employee_days[emp_id]) < employee.max_consecutive_days:
-                    # Este empleado cumple con todas las condiciones
-                    preference = employee.get_preference_score(shift.day, shift.name)
-                    cost = employee.hourly_cost
-                    candidates.append((employee, preference, cost))
+            candidates = self._find_candidates_for_shift(
+                shift, employees, employee_hours, employee_days, day_shift_employees
+            )
             
             # Ordenar candidatos por preferencia (mayor primero) y costo (menor primero)
             candidates.sort(key=lambda x: (x[1], -x[2]), reverse=True)
@@ -420,6 +422,67 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
                 day_shift_employees[day_shift_key].add(employee.id)
         
         return solution
+    
+    def _map_employee_best_shifts(self, employees: List[Employee], shifts: List[Shift]) -> Dict[str, List[Tuple[Shift, float]]]:
+        """Mapea cada empleado a sus mejores turnos por calificación y preferencia."""
+        employee_best_shifts = collections.defaultdict(list)
+        
+        for employee in employees:
+            for shift in shifts:
+                # Verificar calificación básica
+                if (employee.is_available(shift.day, shift.name) and
+                    shift.required_skills.issubset(employee.skills)):
+                    # Calcular puntuación para este turno
+                    preference = employee.get_preference_score(shift.day, shift.name)
+                    cost_efficiency = 1.0 / (employee.hourly_cost + 0.1)  # Inverso del costo
+                    score = preference * cost_efficiency
+                    
+                    employee_best_shifts[employee.id].append((shift, score))
+            
+            # Ordenar turnos para cada empleado por puntuación (mayor primero)
+            employee_best_shifts[employee.id].sort(key=lambda x: x[1], reverse=True)
+        
+        return employee_best_shifts
+    
+    def _find_candidates_for_shift(
+        self,
+        shift: Shift,
+        employees: List[Employee],
+        employee_hours: Dict[str, float],
+        employee_days: Dict[str, set],
+        day_shift_employees: Dict[Tuple, set]
+    ) -> List[Tuple[Employee, float, float]]:
+        """Encuentra empleados candidatos para un turno específico."""
+        day_shift_key = (shift.day, shift.name)
+        candidates = []
+        
+        for employee in employees:
+            emp_id = employee.id
+            
+            # Verificar si ya está asignado a este turno
+            if emp_id in day_shift_employees[day_shift_key]:
+                continue
+            
+            # Verificar disponibilidad básica
+            if not employee.is_available(shift.day, shift.name):
+                continue
+            
+            # Verificar habilidades
+            if not shift.required_skills.issubset(employee.skills):
+                continue
+            
+            # Verificar límite de horas
+            if employee_hours[emp_id] + shift.duration_hours > employee.max_hours_per_week:
+                continue
+            
+            # Verificar días consecutivos (simplificado)
+            if shift.day in employee_days[emp_id] or len(employee_days[emp_id]) < employee.max_consecutive_days:
+                # Este empleado cumple con todas las condiciones
+                preference = employee.get_preference_score(shift.day, shift.name)
+                cost = employee.hourly_cost
+                candidates.append((employee, preference, cost))
+        
+        return candidates
     
     def _generate_relaxed_solutions(
         self, 
@@ -535,46 +598,37 @@ class GeneticAlgorithmOptimizer(OptimizerStrategy):
         return population[winner_index].clone()
     
     def _crossover(self, parent1: Solution, parent2: Solution) -> Tuple[Solution, Solution]:
-        """Aplica cruce para crear dos descendientes, manteniendo la factibilidad."""
-        # Convertir asignaciones a conjuntos para una manipulación más sencilla
+        """Aplica cruce para crear dos descendientes, utilizando operaciones de conjunto más eficientes."""
+        # Convertir asignaciones a conjuntos para manipulación más eficiente
         assignments1 = set(parent1.assignments)
         assignments2 = set(parent2.assignments)
         
-        # Obtener elementos únicos de cada padre
-        unique_to_parent1 = assignments1 - assignments2
-        unique_to_parent2 = assignments2 - assignments1
+        # Obtener elementos comunes y únicos
+        common = assignments1 & assignments2
+        unique_to_parent1 = assignments1 - common
+        unique_to_parent2 = assignments2 - common
         
-        # Obtener elementos comunes
-        common = assignments1.intersection(assignments2)
-        
-        # Crear descendientes mezclando elementos únicos
-        if unique_to_parent1 and unique_to_parent2:
-            crossover_point = random.randint(1, min(len(unique_to_parent1), len(unique_to_parent2)))
-            
-            # Convertir a listas para indexación
-            unique_to_parent1_list = list(unique_to_parent1)
-            unique_to_parent2_list = list(unique_to_parent2)
-            
-            # Crear nuevos conjuntos de asignaciones
-            offspring1_assignments = common.union(
-                set(unique_to_parent1_list[:crossover_point]),
-                set(unique_to_parent2_list[crossover_point:])
-            )
-            
-            offspring2_assignments = common.union(
-                set(unique_to_parent2_list[:crossover_point]),
-                set(unique_to_parent1_list[crossover_point:])
-            )
-        else:
-            # Si un padre no tiene elementos únicos, simplemente clonar los padres
+        # Si no hay elementos únicos en algún padre, simplemente clonar
+        if not unique_to_parent1 or not unique_to_parent2:
             return parent1.clone(), parent2.clone()
+        
+        # Crear descendientes usando punto de cruce único con las asignaciones únicas
+        unique_to_parent1_list = list(unique_to_parent1)
+        unique_to_parent2_list = list(unique_to_parent2)
+        
+        # Determinar punto de cruce
+        crossover_point = random.randint(1, min(len(unique_to_parent1_list), len(unique_to_parent2_list)))
+        
+        # Crear nuevos conjuntos de asignaciones usando comprehensiones más eficientes
+        offspring1_assignments = list(common) + unique_to_parent1_list[:crossover_point] + unique_to_parent2_list[crossover_point:]
+        offspring2_assignments = list(common) + unique_to_parent2_list[:crossover_point] + unique_to_parent1_list[crossover_point:]
         
         # Crear soluciones descendientes
         offspring1 = Solution()
-        offspring1.assignments = list(offspring1_assignments)
+        offspring1.assignments = offspring1_assignments
         
         offspring2 = Solution()
-        offspring2.assignments = list(offspring2_assignments)
+        offspring2.assignments = offspring2_assignments
         
         return offspring1, offspring2
     
