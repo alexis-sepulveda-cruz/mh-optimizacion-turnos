@@ -1,7 +1,7 @@
 import random
 import logging
 import time
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Set
 from collections import deque, defaultdict
 
 from mh_optimizacion_turnos.domain.services.optimizer_strategy import OptimizerStrategy
@@ -23,13 +23,15 @@ class TabuSearchOptimizer(OptimizerStrategy):
     
     def get_default_config(self) -> Dict[str, Any]:
         return {
-            "max_iterations": 1000,
-            "tabu_tenure": 20,
-            "neighborhood_size": 30,
-            "max_iterations_without_improvement": 200,
-            "max_initial_solution_attempts": 100,  # Máximos intentos para generar solución inicial válida
-            "max_neighbor_attempts": 100,  # Máximos intentos para generar vecinos válidos por iteración
-            "validation_timeout": 10,  # Tiempo máximo (segundos) para generar soluciones válidas
+            "max_iterations": 100,            # Número de iteraciones de la búsqueda tabú
+            "tabu_tenure": 15,                # Duración de permanencia en la lista tabú
+            "neighborhood_size": 20,          # Número de vecinos a generar por iteración
+            "max_iterations_without_improvement": 30, # Detención temprana
+            "max_initial_solution_attempts": 1500, # Máximos intentos para generar solución inicial
+            "max_neighbor_attempts": 100,     # Máximos intentos para generar vecinos válidos por iteración
+            "validation_timeout": 15,         # Tiempo máximo (segundos) para generar soluciones válidas
+            "use_constructive_approach": True, # Usar enfoque constructivo si aleatorio falla
+            "relaxation_factor": 0.7,         # Factor para relajar restricciones temporalmente
             "metrics": {
                 "enabled": True,
                 "track_evaluations": True,
@@ -46,13 +48,15 @@ class TabuSearchOptimizer(OptimizerStrategy):
             config = self.get_default_config()
         
         # Extraer parámetros de configuración
-        max_iterations = config.get("max_iterations", 1000)
-        tabu_tenure = config.get("tabu_tenure", 20)
-        neighborhood_size = config.get("neighborhood_size", 30)
-        max_no_improve = config.get("max_iterations_without_improvement", 200)
-        max_initial_solution_attempts = config.get("max_initial_solution_attempts", 100)
+        max_iterations = config.get("max_iterations", 100)
+        tabu_tenure = config.get("tabu_tenure", 15)
+        neighborhood_size = config.get("neighborhood_size", 20)
+        max_no_improve = config.get("max_iterations_without_improvement", 30)
+        max_initial_solution_attempts = config.get("max_initial_solution_attempts", 1500)
         max_neighbor_attempts = config.get("max_neighbor_attempts", 100)
-        validation_timeout = config.get("validation_timeout", 10)
+        validation_timeout = config.get("validation_timeout", 15)
+        use_constructive_approach = config.get("use_constructive_approach", True)
+        relaxation_factor = config.get("relaxation_factor", 0.7)
         
         # Inicialización de métricas
         metrics = {
@@ -76,28 +80,14 @@ class TabuSearchOptimizer(OptimizerStrategy):
         start_time = time.time()
         current_solution = None
         
-        for attempt in range(max_initial_solution_attempts):
-            metrics["initial_solution_attempts"] += 1
-            
-            # Intentar generar una solución inicial
-            candidate = self._create_initial_solution(employees, shifts)
-            
-            # Validar la solución
-            validation_result = validator.validate(candidate, employees, shifts)
-            
-            if validation_result.is_valid:
-                current_solution = candidate
-                break
-                
-            # Verificar timeout
-            if time.time() - start_time > validation_timeout:
-                logger.warning("Timeout en la generación de solución inicial válida")
-                break
+        # Intentar generar una solución inicial válida usando diferentes estrategias
+        current_solution = self._create_initial_solution(
+            employees, shifts, validator, max_initial_solution_attempts, 
+            validation_timeout, use_constructive_approach, relaxation_factor
+        )
         
-        # Si no se pudo generar una solución inicial válida
         if current_solution is None:
-            raise ValueError(f"No se pudo generar una solución inicial válida después de "
-                           f"{metrics['initial_solution_attempts']} intentos. "
+            raise ValueError(f"No se pudo generar una solución inicial válida después de varios intentos. "
                            f"Las restricciones pueden ser demasiado estrictas.")
         
         # Inicializar mejor solución
@@ -110,55 +100,58 @@ class TabuSearchOptimizer(OptimizerStrategy):
         
         iterations_without_improvement = 0
         
-        logger.info(f"Solución inicial válida generada con fitness {current_fitness:.4f} "
-                  f"después de {metrics['initial_solution_attempts']} intentos")
+        logger.info(f"Solución inicial válida generada con fitness {current_fitness:.4f}")
         
         # Bucle principal de búsqueda tabú
         for iteration in range(max_iterations):
             iteration_start = time.time()
             
             # Generar vecindario válido (vecinos que cumplen con todas las restricciones)
-            neighbors = []
-            neighbor_attempts = 0
+            neighbors = self._generate_valid_neighborhood(
+                current_solution, employees, shifts, validator,
+                neighborhood_size, max_neighbor_attempts, validation_timeout
+            )
             
-            while len(neighbors) < neighborhood_size and neighbor_attempts < max_neighbor_attempts:
-                # Generar un conjunto de vecinos candidatos
-                candidate_neighbors = self._generate_neighborhood_candidates(
-                    current_solution, employees, shifts, 
-                    min(neighborhood_size, max_neighbor_attempts - neighbor_attempts)
-                )
-                
-                neighbor_attempts += len(candidate_neighbors)
-                metrics["neighbor_attempts"] += len(candidate_neighbors)
-                
-                # Validar cada vecino
-                for neighbor, move in candidate_neighbors:
-                    validation_result = validator.validate(neighbor, employees, shifts)
-                    
-                    if validation_result.is_valid:
-                        neighbors.append((neighbor, move))
-                        metrics["neighbors_generated"] += 1
-                
-                # Verificar timeout
-                if time.time() - iteration_start > validation_timeout:
-                    logger.warning(f"Timeout en la generación de vecindario en iteración {iteration}")
-                    break
+            metrics["neighbor_attempts"] += max_neighbor_attempts
+            metrics["neighbors_generated"] += len(neighbors)
             
             # Actualizar métrica de tasa de vecinos válidos
-            if neighbor_attempts > 0:
-                current_valid_rate = len(neighbors) / neighbor_attempts
-                if metrics["valid_neighbors_rate"] == 0:
-                    metrics["valid_neighbors_rate"] = current_valid_rate
-                else:
-                    metrics["valid_neighbors_rate"] = (
-                        metrics["valid_neighbors_rate"] * 0.7 + current_valid_rate * 0.3
-                    )
+            current_valid_rate = len(neighbors) / max(1, max_neighbor_attempts)
+            if metrics["valid_neighbors_rate"] == 0:
+                metrics["valid_neighbors_rate"] = current_valid_rate
+            else:
+                metrics["valid_neighbors_rate"] = (
+                    metrics["valid_neighbors_rate"] * 0.7 + current_valid_rate * 0.3
+                )
             
-            # Si no se encontraron vecinos válidos, finalizar
+            # Si no se encontraron vecinos válidos, intentar diversificación
             if not neighbors:
-                logger.warning(f"No se encontraron movimientos válidos en la iteración {iteration} "
-                             f"después de {neighbor_attempts} intentos")
-                break
+                logger.warning(f"No se encontraron movimientos válidos en la iteración {iteration}")
+                # Diversificación: reiniciar desde una nueva solución
+                diversified = self._create_diversification_solution(
+                    employees, shifts, validator, max_initial_solution_attempts, relaxation_factor
+                )
+                if diversified:
+                    current_solution = diversified
+                    current_fitness = self._calculate_fitness(current_solution, employees, shifts)
+                    metrics["objective_evaluations"] += 1
+                    
+                    # Actualizar mejor solución si es necesario
+                    if current_fitness > best_fitness:
+                        best_solution = current_solution.clone()
+                        best_fitness = current_fitness
+                        iterations_without_improvement = 0
+                    else:
+                        iterations_without_improvement += 1
+                        
+                    # Limpiar lista tabú
+                    tabu_list.clear()
+                    logger.info(f"Diversificación en iteración {iteration}: nuevo fitness = {current_fitness:.4f}")
+                    continue
+                else:
+                    # Si no se puede crear una solución diversa, terminar
+                    logger.warning("No se pudo diversificar. Finalizando búsqueda.")
+                    break
                 
             # Encontrar el mejor vecino no tabú
             best_neighbor = None
@@ -167,43 +160,43 @@ class TabuSearchOptimizer(OptimizerStrategy):
             
             for neighbor, move in neighbors:
                 # Verificar si el movimiento es tabú
-                if move in tabu_list:
-                    continue
-                    
+                is_tabu = move in tabu_list
+                
                 neighbor_fitness = self._calculate_fitness(neighbor, employees, shifts)
                 metrics["objective_evaluations"] += 1
                 
-                # Aceptar si es mejor que el mejor encontrado hasta ahora
-                if neighbor_fitness > best_neighbor_fitness:
-                    best_neighbor = neighbor
-                    best_neighbor_fitness = neighbor_fitness
-                    best_move = move
-                
                 # Criterio de aspiración: aceptar si es mejor que el mejor global, incluso si es tabú
-                if neighbor_fitness > best_fitness and move in tabu_list:
+                if neighbor_fitness > best_fitness and is_tabu:
                     best_neighbor = neighbor
                     best_neighbor_fitness = neighbor_fitness
                     best_move = move
+                    logger.info(f"Criterio de aspiración aplicado: movimiento tabú aceptado con fitness = {neighbor_fitness:.4f}")
                     break
+                
+                # Aceptar si no es tabú y es mejor que el mejor encontrado hasta ahora
+                if not is_tabu and neighbor_fitness > best_neighbor_fitness:
+                    best_neighbor = neighbor
+                    best_neighbor_fitness = neighbor_fitness
+                    best_move = move
             
             # Si no se encuentran movimientos no tabú
             if best_neighbor is None:
                 logger.info(f"Todos los movimientos están en la lista tabú en la iteración {iteration}")
-                # Diversificación: reiniciar desde una nueva solución
-                new_solution = self._create_diversification_solution(
-                    employees, shifts, validator, max_initial_solution_attempts
-                )
-                if new_solution:
-                    current_solution = new_solution
-                    current_fitness = self._calculate_fitness(current_solution, employees, shifts)
+                # Intentar encontrar el mejor movimiento tabú como último recurso
+                for neighbor, move in neighbors:
+                    neighbor_fitness = self._calculate_fitness(neighbor, employees, shifts)
                     metrics["objective_evaluations"] += 1
                     
-                    # Limpiar lista tabú
-                    tabu_list.clear()
+                    if neighbor_fitness > best_neighbor_fitness:
+                        best_neighbor = neighbor
+                        best_neighbor_fitness = neighbor_fitness
+                        best_move = move
+                        
+                # Si aun así no hay vecinos, diversificar
+                if best_neighbor is None:
                     continue
-                else:
-                    # Si no se puede crear una solución diversa, terminar
-                    break
+                
+                logger.info(f"Seleccionando el mejor movimiento tabú con fitness = {best_neighbor_fitness:.4f}")
                 
             # Moverse al mejor vecino
             current_solution = best_neighbor
@@ -238,7 +231,69 @@ class TabuSearchOptimizer(OptimizerStrategy):
         
         return best_solution
     
-    def _create_initial_solution(self, employees: List[Employee], shifts: List[Shift]) -> Solution:
+    def _create_initial_solution(self, 
+                               employees: List[Employee], 
+                               shifts: List[Shift],
+                               validator: SolutionValidator,
+                               max_attempts: int,
+                               timeout: float,
+                               use_constructive_approach: bool = True,
+                               relaxation_factor: float = 0.7) -> Optional[Solution]:
+        """Crear una solución inicial válida usando varias estrategias."""
+        start_time = time.time()
+        
+        # Estrategia 1: Generar soluciones aleatorias que intenten respetar restricciones
+        for attempt in range(max_attempts // 2):
+            if time.time() - start_time > timeout / 2:
+                break
+                
+            # Intentar crear una solución aleatoria que respete restricciones básicas
+            solution = self._create_random_solution(employees, shifts)
+            
+            # Validar la solución
+            validation_result = validator.validate(solution, employees, shifts)
+            
+            if validation_result.is_valid:
+                logger.info(f"Solución inicial válida generada aleatoriamente en {attempt + 1} intentos")
+                return solution
+                
+            if (attempt + 1) % 500 == 0:
+                logger.info(f"Generando solución inicial: {attempt + 1} intentos realizados")
+        
+        # Estrategia 2: Enfoque constructivo
+        if use_constructive_approach:
+            logger.info("Intentando enfoque constructivo para generar solución inicial")
+            constructive = self._create_constructive_solution(employees, shifts)
+            
+            validation_result = validator.validate(constructive, employees, shifts)
+            
+            if validation_result.is_valid:
+                logger.info("Solución inicial válida generada usando enfoque constructivo")
+                return constructive
+        
+        # Estrategia 3: Enfoque con relajación de restricciones
+        remaining_time = timeout - (time.time() - start_time)
+        if remaining_time > 0:
+            logger.info("Intentando generar solución con restricciones relajadas")
+            attempt_limit = max(100, max_attempts // 4)
+            
+            for attempt in range(attempt_limit):
+                if time.time() - start_time > timeout:
+                    break
+                    
+                solution = self._create_relaxed_solution(employees, shifts, relaxation_factor)
+                
+                # Validar la solución
+                validation_result = validator.validate(solution, employees, shifts)
+                
+                if validation_result.is_valid:
+                    logger.info(f"Solución inicial válida generada con restricciones relajadas en {attempt + 1} intentos")
+                    return solution
+        
+        logger.error("No se pudo generar una solución inicial válida")
+        return None
+    
+    def _create_random_solution(self, employees: List[Employee], shifts: List[Shift]) -> Solution:
         """Crear una solución inicial que intenta respetar restricciones."""
         solution = Solution()
         
@@ -291,62 +346,17 @@ class TabuSearchOptimizer(OptimizerStrategy):
                 # Este empleado cumple con todas las condiciones
                 qualified_employees.append(employee)
             
-            # Ordenar por costo por hora (ascendente)
-            qualified_employees.sort(key=lambda e: e.hourly_cost)
-            
-            # Asignar el número requerido de empleados
-            for i in range(min(needed, len(qualified_employees))):
-                employee = qualified_employees[i]
-                assignment = Assignment(
-                    employee_id=employee.id,
-                    shift_id=shift.id,
-                    cost=employee.hourly_cost * shift.duration_hours
+            # Si hay suficientes empleados calificados, tomar en cuenta preferencias y costo
+            if len(qualified_employees) > 0:
+                # Ordenar por preferencia (descendente) y luego por costo (ascendente)
+                qualified_employees.sort(
+                    key=lambda e: (
+                        -e.get_preference_score(shift.day, shift.name),  # Preferencia alta primero
+                        e.hourly_cost  # Costo bajo primero
+                    )
                 )
-                solution.add_assignment(assignment)
                 
-                # Actualizar registros
-                day_shift_employees[day_shift_key].add(employee.id)
-                employee_hours[employee.id] += shift.duration_hours
-                employee_days[employee.id].add(shift.day)
-        
-        return solution
-    
-    def _create_diversification_solution(self, employees: List[Employee], shifts: List[Shift], 
-                                        validator: SolutionValidator, max_attempts: int) -> Optional[Solution]:
-        """Crear una solución diversificada para escapar de óptimos locales."""
-        for attempt in range(max_attempts):
-            # Crear solución con perturbación aleatoria en la selección de empleados
-            solution = Solution()
-            
-            # Ordenar turnos aleatoriamente (para diversificar)
-            random_shifts = list(shifts)
-            random.shuffle(random_shifts)
-            
-            # Rastrear asignaciones por día y tipo de turno
-            day_shift_employees = defaultdict(set)
-            employee_hours = {e.id: 0.0 for e in employees}
-            employee_days = {e.id: set() for e in employees}
-            
-            for shift in random_shifts:
-                day_shift_key = (shift.day, shift.name)
-                needed = shift.required_employees - len(day_shift_employees[day_shift_key])
-                
-                if needed <= 0:
-                    continue
-                    
-                # Encontrar empleados calificados
-                qualified_employees = [
-                    e for e in employees
-                    if e.id not in day_shift_employees[day_shift_key] and
-                    e.is_available(shift.day, shift.name) and
-                    shift.required_skills.issubset(e.skills) and
-                    employee_hours[e.id] + shift.duration_hours <= e.max_hours_per_week
-                ]
-                
-                # Mezclar aleatoriamente (para diversificar)
-                random.shuffle(qualified_employees)
-                
-                # Asignar empleados
+                # Asignar el número requerido de empleados o los disponibles
                 for i in range(min(needed, len(qualified_employees))):
                     employee = qualified_employees[i]
                     assignment = Assignment(
@@ -360,175 +370,505 @@ class TabuSearchOptimizer(OptimizerStrategy):
                     day_shift_employees[day_shift_key].add(employee.id)
                     employee_hours[employee.id] += shift.duration_hours
                     employee_days[employee.id].add(shift.day)
-            
-            # Validar solución
-            validation_result = validator.validate(solution, employees, shifts)
-            
-            if validation_result.is_valid:
-                return solution
         
-        return None
+        return solution
     
-    def _generate_neighborhood_candidates(self, current_solution: Solution,
-                                        employees: List[Employee], shifts: List[Shift],
-                                        neighborhood_size: int) -> List[Tuple[Solution, Tuple]]:
-        """Generar candidatos a soluciones vecinas (pueden incluir soluciones inválidas)."""
-        candidates = []
+    def _create_constructive_solution(self, employees: List[Employee], shifts: List[Shift]) -> Solution:
+        """Crear una solución usando un enfoque constructivo greedy."""
+        solution = Solution()
         
-        # Crear diccionarios para búsquedas rápidas
+        # Crear mapeos para acceso rápido
         shift_dict = {s.id: s for s in shifts}
         employee_dict = {e.id: e for e in employees}
         
-        # Agrupar asignaciones por turno
-        shift_assignments = defaultdict(list)
-        for a in current_solution.assignments:
-            shift_assignments[a.shift_id].append(a)
-        
-        # Rastrear asignaciones actuales por día y tipo de turno
+        # Rastrear asignaciones
+        employee_hours = {e.id: 0.0 for e in employees}
+        employee_days = {e.id: set() for e in employees}
         day_shift_employees = defaultdict(set)
-        for assignment in current_solution.assignments:
-            if assignment.shift_id in shift_dict:
-                shift = shift_dict[assignment.shift_id]
-                day_shift_key = (shift.day, shift.name)
-                day_shift_employees[day_shift_key].add(assignment.employee_id)
         
-        # Estrategia 1: Reemplazar Empleado (con restricciones)
-        if current_solution.assignments:
-            for _ in range(min(neighborhood_size // 2, len(current_solution.assignments))):
-                # Elegir asignación aleatoria para reemplazar
-                assignment = random.choice(current_solution.assignments)
-                shift = shift_dict.get(assignment.shift_id)
+        # Ordenar turnos por prioridad (descendente)
+        days_order = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
+        sorted_shifts = sorted(shifts, 
+                              key=lambda s: (
+                                  -s.priority,
+                                  days_order.index(s.day.name) if s.day.name in days_order else 999,
+                                  s.name.name  # ShiftType como MAÑANA, TARDE, NOCHE
+                              ))
+        
+        # Asignar turnos uno por uno, priorizando los de mayor prioridad
+        for shift in sorted_shifts:
+            day_shift_key = (shift.day, shift.name)
+            required = shift.required_employees - len(day_shift_employees[day_shift_key])
+            
+            if required <= 0:
+                continue  # Este turno ya está cubierto
+            
+            # Encontrar candidatos para este turno basados en disponibilidad, habilidades y restricciones
+            candidates = []
+            for employee in employees:
+                emp_id = employee.id
                 
-                if shift:
-                    # Encontrar posibles reemplazos que respeten restricciones
-                    day_shift_key = (shift.day, shift.name)
+                # Verificar si ya está asignado a este turno
+                if emp_id in day_shift_employees[day_shift_key]:
+                    continue
+                
+                # Verificar disponibilidad y habilidades
+                if not (employee.is_available(shift.day, shift.name) and 
+                       shift.required_skills.issubset(employee.skills)):
+                    continue
+                
+                # Verificar límite de horas
+                if employee_hours[emp_id] + shift.duration_hours > employee.max_hours_per_week:
+                    continue
+                
+                # Este empleado es un candidato
+                preference = employee.get_preference_score(shift.day, shift.name)
+                cost = employee.hourly_cost
+                # Calculamos un score combinado: mayor preferencia y menor costo es mejor
+                score = preference - (cost / 100.0)  # Normalizar el impacto del costo
+                
+                candidates.append((employee, score))
+            
+            # Ordenar candidatos por score (mayor primero)
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            
+            # Asignar los mejores candidatos
+            for i in range(min(required, len(candidates))):
+                employee = candidates[i][0]
+                
+                # Crear asignación
+                assignment = Assignment(
+                    employee_id=employee.id,
+                    shift_id=shift.id,
+                    cost=employee.hourly_cost * shift.duration_hours
+                )
+                solution.add_assignment(assignment)
+                
+                # Actualizar registros
+                employee_hours[employee.id] += shift.duration_hours
+                employee_days[employee.id].add(shift.day)
+                day_shift_employees[day_shift_key].add(employee.id)
+        
+        return solution
+    
+    def _create_relaxed_solution(self, 
+                              employees: List[Employee],
+                              shifts: List[Shift],
+                              relaxation_factor: float) -> Solution:
+        """Crear una solución relajando algunas restricciones."""
+        solution = Solution()
+        
+        # Rastrear asignaciones
+        employee_hours = {e.id: 0.0 for e in employees}
+        day_shift_employees = defaultdict(set)
+        
+        for shift in shifts:
+            day_shift_key = (shift.day, shift.name)
+            needed = shift.required_employees - len(day_shift_employees[day_shift_key])
+            
+            if needed <= 0:
+                continue  # Este turno ya está cubierto
+            
+            # Construir lista de candidatos con restricciones relajadas
+            candidates = []
+            
+            for employee in employees:
+                emp_id = employee.id
+                
+                # Verificar si ya está asignado a este turno
+                if emp_id in day_shift_employees[day_shift_key]:
+                    continue
+                
+                # Verificar disponibilidad con relajación
+                available = (employee.is_available(shift.day, shift.name) or 
+                           random.random() < relaxation_factor)
+                
+                # Verificar habilidades con relajación
+                has_skills = (shift.required_skills.issubset(employee.skills) or 
+                             random.random() < relaxation_factor)
+                
+                # Relajación de horas: permitir exceder un poco el máximo
+                hours_ok = (employee_hours[emp_id] + shift.duration_hours <= 
+                         employee.max_hours_per_week * (1 + relaxation_factor * 0.1))
+                
+                if available and has_skills and hours_ok:
+                    # Este empleado es candidato
+                    preference = employee.get_preference_score(shift.day, shift.name)
+                    candidates.append((employee, preference))
+            
+            # Si aún así no hay suficientes candidatos, usar a cualquiera
+            if len(candidates) < needed:
+                all_employees = [e for e in employees if e.id not in day_shift_employees[day_shift_key]]
+                if all_employees:
+                    # Añadir empleados aleatorios
+                    random.shuffle(all_employees)
+                    for e in all_employees:
+                        if (e.id, e.get_preference_score(shift.day, shift.name)) not in candidates:
+                            candidates.append((e, 0))  # Preferencia neutral
+                        if len(candidates) >= needed:
+                            break
+            
+            # Ordenar por preferencia (mayor primero)
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            
+            # Asignar empleados
+            for i in range(min(needed, len(candidates))):
+                employee = candidates[i][0]
+                
+                # Crear asignación
+                assignment = Assignment(
+                    employee_id=employee.id,
+                    shift_id=shift.id,
+                    cost=employee.hourly_cost * shift.duration_hours
+                )
+                solution.add_assignment(assignment)
+                
+                # Actualizar registros
+                employee_hours[employee.id] += shift.duration_hours
+                day_shift_employees[day_shift_key].add(employee.id)
+        
+        return solution
+    
+    def _create_diversification_solution(self, 
+                                    employees: List[Employee], 
+                                    shifts: List[Shift], 
+                                    validator: SolutionValidator, 
+                                    max_attempts: int,
+                                    relaxation_factor: float = 0.7) -> Optional[Solution]:
+        """Crear una solución diversificada para escapar de óptimos locales."""
+        # Estrategia 1: Enfoque constructivo con aleatorización
+        constructive = self._create_constructive_solution(employees, shifts)
+        validation_result = validator.validate(constructive, employees, shifts)
+        
+        if validation_result.is_valid:
+            # Aplicar una mutación fuerte para diversificar
+            self._mutate_solution(constructive, employees, shifts, mutation_rate=0.3)
+            
+            # Verificar que sigue siendo válida
+            validation_result = validator.validate(constructive, employees, shifts)
+            if validation_result.is_valid:
+                return constructive
+        
+        # Estrategia 2: Generar soluciones relajadas y validarlas
+        for attempt in range(max_attempts // 10):
+            solution = self._create_relaxed_solution(employees, shifts, relaxation_factor)
+            
+            validation_result = validator.validate(solution, employees, shifts)
+            if validation_result.is_valid:
+                return solution
+        
+        # No se pudo generar una solución válida
+        return None
+    
+    def _generate_valid_neighborhood(self,
+                               current_solution: Solution,
+                               employees: List[Employee],
+                               shifts: List[Shift],
+                               validator: SolutionValidator,
+                               neighborhood_size: int,
+                               max_attempts: int,
+                               timeout: float) -> List[Tuple[Solution, Tuple]]:
+        """Genera un conjunto de soluciones vecinas válidas."""
+        valid_neighbors = []
+        attempts = 0
+        start_time = time.time()
+        
+        while len(valid_neighbors) < neighborhood_size and attempts < max_attempts:
+            if time.time() - start_time > timeout:
+                logger.warning(f"Timeout en la generación de vecindario después de {attempts} intentos")
+                break
+                
+            # Generar un vecino candidato
+            candidate, move = self._generate_neighbor(current_solution, employees, shifts)
+            attempts += 1
+            
+            # Validar la solución
+            validation_result = validator.validate(candidate, employees, shifts)
+            
+            if validation_result.is_valid:
+                valid_neighbors.append((candidate, move))
+                
+            # Informar progreso
+            if attempts % 50 == 0 and attempts > 0:
+                logger.debug(f"Vecinos generados: {len(valid_neighbors)}/{neighborhood_size} "
+                           f"en {attempts} intentos ({time.time() - start_time:.2f}s)")
+        
+        return valid_neighbors
+    
+    def _generate_neighbor(self, 
+                         solution: Solution, 
+                         employees: List[Employee], 
+                         shifts: List[Shift]) -> Tuple[Solution, Tuple]:
+        """Genera un vecino usando diversos operadores de vecindad."""
+        # Operadores de vecindad disponibles
+        operators = [
+            self._swap_operator,
+            self._replace_operator,
+            self._add_assignment_operator
+        ]
+        
+        # Seleccionar un operador aleatoriamente
+        operator = random.choice(operators)
+        
+        # Aplicar el operador
+        return operator(solution, employees, shifts)
+    
+    def _swap_operator(self, 
+                     solution: Solution, 
+                     employees: List[Employee], 
+                     shifts: List[Shift]) -> Tuple[Solution, Tuple]:
+        """Operador de vecindad: intercambiar dos asignaciones entre empleados."""
+        if len(solution.assignments) < 2:
+            # No hay suficientes asignaciones para intercambiar, usar otro operador
+            return self._replace_operator(solution, employees, shifts)
+        
+        # Clonar solución para modificarla
+        new_solution = solution.clone()
+        
+        # Seleccionar dos asignaciones aleatorias
+        indices = random.sample(range(len(new_solution.assignments)), 2)
+        a1 = new_solution.assignments[indices[0]]
+        a2 = new_solution.assignments[indices[1]]
+        
+        # Intercambiar los empleados
+        emp1, emp2 = a1.employee_id, a2.employee_id
+        
+        # Crear nuevas asignaciones con los empleados intercambiados
+        employee_dict = {e.id: e for e in employees}
+        shift_dict = {s.id: s for s in shifts}
+        
+        if emp1 in employee_dict and emp2 in employee_dict and a1.shift_id in shift_dict and a2.shift_id in shift_dict:
+            e1 = employee_dict[emp1]
+            e2 = employee_dict[emp2]
+            s1 = shift_dict[a1.shift_id]
+            s2 = shift_dict[a2.shift_id]
+            
+            new_a1 = Assignment(
+                employee_id=emp2,
+                shift_id=a1.shift_id,
+                cost=e2.hourly_cost * s1.duration_hours
+            )
+            
+            new_a2 = Assignment(
+                employee_id=emp1,
+                shift_id=a2.shift_id,
+                cost=e1.hourly_cost * s2.duration_hours
+            )
+            
+            # Reemplazar las asignaciones originales
+            new_solution.assignments[indices[0]] = new_a1
+            new_solution.assignments[indices[1]] = new_a2
+        
+        # Identificador único para este movimiento
+        move = ("swap", (emp1, a1.shift_id), (emp2, a2.shift_id))
+        
+        return new_solution, move
+    
+    def _replace_operator(self, 
+                        solution: Solution, 
+                        employees: List[Employee], 
+                        shifts: List[Shift]) -> Tuple[Solution, Tuple]:
+        """Operador de vecindad: reemplazar un empleado en una asignación."""
+        if not solution.assignments:
+            # No hay asignaciones para reemplazar, usar otro operador
+            return self._add_assignment_operator(solution, employees, shifts)
+        
+        # Clonar solución para modificarla
+        new_solution = solution.clone()
+        
+        # Seleccionar una asignación aleatoria para modificar
+        index = random.randrange(len(new_solution.assignments))
+        assignment = new_solution.assignments[index]
+        
+        # Obtener información del turno
+        shift_dict = {s.id: s for s in shifts}
+        if assignment.shift_id not in shift_dict:
+            # Turno no encontrado, intentar con otro operador
+            return self._add_assignment_operator(solution, employees, shifts)
+            
+        shift = shift_dict[assignment.shift_id]
+        
+        # Encontrar empleados que podrían reemplazar al actual
+        current_employee_id = assignment.employee_id
+        
+        # Obtener todos los empleados asignados a este turno
+        assigned_employees = set(
+            a.employee_id for a in solution.assignments 
+            if a.shift_id == assignment.shift_id
+        )
+        
+        # Buscar candidatos para reemplazo
+        candidates = []
+        for employee in employees:
+            if (employee.id != current_employee_id and 
+                employee.id not in assigned_employees and
+                employee.is_available(shift.day, shift.name) and
+                shift.required_skills.issubset(employee.skills)):
+                candidates.append(employee)
+        
+        if not candidates:
+            # No hay candidatos para reemplazo, usar otro operador
+            return self._add_assignment_operator(solution, employees, shifts)
+        
+        # Seleccionar un empleado aleatorio como reemplazo
+        new_employee = random.choice(candidates)
+        
+        # Crear nueva asignación
+        new_assignment = Assignment(
+            employee_id=new_employee.id,
+            shift_id=assignment.shift_id,
+            cost=new_employee.hourly_cost * shift.duration_hours
+        )
+        
+        # Reemplazar la asignación original
+        new_solution.assignments[index] = new_assignment
+        
+        # Identificador único para este movimiento
+        move = ("replace", current_employee_id, new_employee.id, assignment.shift_id)
+        
+        return new_solution, move
+    
+    def _add_assignment_operator(self, 
+                              solution: Solution, 
+                              employees: List[Employee], 
+                              shifts: List[Shift]) -> Tuple[Solution, Tuple]:
+        """Operador de vecindad: añadir una nueva asignación."""
+        # Clonar solución para modificarla
+        new_solution = solution.clone()
+        
+        # Encontrar turnos con cobertura insuficiente
+        shift_dict = {s.id: s for s in shifts}
+        undercover_shifts = []
+        
+        for shift in shifts:
+            assigned = len(solution.get_shift_employees(shift.id))
+            if assigned < shift.required_employees:
+                undercover_shifts.append((shift, shift.required_employees - assigned))
+        
+        # Si todos los turnos están cubiertos, intentar otro operador
+        if not undercover_shifts:
+            # No hay turnos para cubrir, modificar una asignación existente
+            if solution.assignments:
+                return self._replace_operator(solution, employees, shifts)
+            else:
+                # Crear una asignación completamente nueva
+                if shifts and employees:
+                    shift = random.choice(shifts)
+                    employee = random.choice(employees)
                     
-                    replacement_candidates = [
-                        e for e in employees
-                        if e.id != assignment.employee_id and
-                        e.id not in day_shift_employees[day_shift_key] and
-                        e.is_available(shift.day, shift.name) and
-                        shift.required_skills.issubset(e.skills)
-                    ]
+                    new_assignment = Assignment(
+                        employee_id=employee.id,
+                        shift_id=shift.id,
+                        cost=employee.hourly_cost * shift.duration_hours
+                    )
                     
-                    if replacement_candidates:
-                        new_employee = random.choice(replacement_candidates)
-                        
-                        # Crear nueva solución con este reemplazo
-                        new_solution = current_solution.clone()
-                        
-                        # Encontrar y reemplazar la asignación
-                        for j, a in enumerate(new_solution.assignments):
-                            if a.employee_id == assignment.employee_id and a.shift_id == assignment.shift_id:
-                                new_solution.assignments[j] = Assignment(
+                    new_solution.add_assignment(new_assignment)
+                    
+                    # Identificador único para este movimiento
+                    move = ("add_new", employee.id, shift.id)
+                    
+                    return new_solution, move
+        
+        # Seleccionar un turno con baja cobertura
+        selected_shift, needed = random.choice(undercover_shifts)
+        
+        # Obtener empleados ya asignados a este turno
+        current_assigned_ids = set(solution.get_shift_employees(selected_shift.id))
+        
+        # Buscar empleados disponibles que no estén ya asignados
+        available_employees = [
+            e for e in employees 
+            if e.id not in current_assigned_ids and 
+            e.is_available(selected_shift.day, selected_shift.name) and
+            selected_shift.required_skills.issubset(e.skills)
+        ]
+        
+        # Si no hay empleados disponibles, intentar otro operador
+        if not available_employees:
+            return self._replace_operator(solution, employees, shifts)
+        
+        # Seleccionar un empleado aleatorio
+        selected_employee = random.choice(available_employees)
+        
+        # Añadir nueva asignación
+        new_assignment = Assignment(
+            employee_id=selected_employee.id,
+            shift_id=selected_shift.id,
+            cost=selected_employee.hourly_cost * selected_shift.duration_hours
+        )
+        
+        new_solution.add_assignment(new_assignment)
+        
+        # Identificador único para este movimiento
+        move = ("add", selected_employee.id, selected_shift.id)
+        
+        return new_solution, move
+    
+    def _mutate_solution(self, 
+                       solution: Solution, 
+                       employees: List[Employee], 
+                       shifts: List[Shift], 
+                       mutation_rate: float = 0.2) -> None:
+        """Aplica mutación a una solución (modificación in-place)."""
+        # Rastrear empleados por turno
+        shift_employees = defaultdict(set)
+        for assignment in solution.assignments:
+            shift_employees[assignment.shift_id].add(assignment.employee_id)
+        
+        # Decidir qué asignaciones modificar
+        for i, assignment in enumerate(solution.assignments[:]):  # Copiar lista para iterar seguramente
+            if random.random() < mutation_rate:
+                # Eliminar esta asignación
+                solution.assignments.remove(assignment)
+                shift_employees[assignment.shift_id].remove(assignment.employee_id)
+                
+                # Posiblemente reemplazar con otra
+                if random.random() < 0.7:  # 70% de probabilidad de reemplazo
+                    shift_id = assignment.shift_id
+                    if shift_id in shift_employees:
+                        # Buscar un nuevo empleado
+                        shift = next((s for s in shifts if s.id == shift_id), None)
+                        if shift:
+                            qualified_employees = [
+                                e for e in employees 
+                                if e.id not in shift_employees[shift_id] and 
+                                e.is_available(shift.day, shift.name) and
+                                shift.required_skills.issubset(e.skills)
+                            ]
+                            
+                            if qualified_employees:
+                                new_employee = random.choice(qualified_employees)
+                                new_assignment = Assignment(
                                     employee_id=new_employee.id,
-                                    shift_id=assignment.shift_id,
+                                    shift_id=shift_id,
                                     cost=new_employee.hourly_cost * shift.duration_hours
                                 )
-                                break
-                        
-                        # Identificador único para este movimiento
-                        move = (assignment.employee_id, assignment.shift_id, new_employee.id)
-                        candidates.append((new_solution, move))
+                                solution.add_assignment(new_assignment)
+                                shift_employees[shift_id].add(new_employee.id)
         
-        # Estrategia 2: Intercambiar Asignaciones (con restricciones)
-        if len(shift_assignments) >= 2:
-            shift_ids = list(shift_assignments.keys())
-            
-            for _ in range(min(neighborhood_size // 2, len(shift_assignments))):
-                if len(shift_ids) < 2:
-                    break
-                    
-                # Elegir dos turnos diferentes
-                shift_id_pair = random.sample(shift_ids, 2)
-                
-                if (shift_assignments[shift_id_pair[0]] and shift_assignments[shift_id_pair[1]]):
-                    # Elegir una asignación de cada turno
-                    assignment1 = random.choice(shift_assignments[shift_id_pair[0]])
-                    assignment2 = random.choice(shift_assignments[shift_id_pair[1]])
-                    
-                    shift1 = shift_dict.get(assignment1.shift_id)
-                    shift2 = shift_dict.get(assignment2.shift_id)
-                    
-                    employee1 = employee_dict.get(assignment1.employee_id)
-                    employee2 = employee_dict.get(assignment2.employee_id)
-                    
-                    # Verificar compatibilidad básica (será validado después)
-                    if (employee1 and employee2 and shift1 and shift2):
-                        # Crear nueva solución con el intercambio
-                        new_solution = current_solution.clone()
-                        
-                        # Realizar el intercambio
-                        new_assignments = []
-                        for a in new_solution.assignments:
-                            if a.employee_id == assignment1.employee_id and a.shift_id == assignment1.shift_id:
-                                new_assignments.append(Assignment(
-                                    employee_id=employee2.id,
-                                    shift_id=shift1.id,
-                                    cost=employee2.hourly_cost * shift1.duration_hours
-                                ))
-                            elif a.employee_id == assignment2.employee_id and a.shift_id == assignment2.shift_id:
-                                new_assignments.append(Assignment(
-                                    employee_id=employee1.id,
-                                    shift_id=shift2.id,
-                                    cost=employee1.hourly_cost * shift2.duration_hours
-                                ))
-                            else:
-                                new_assignments.append(a)
-                        
-                        new_solution.assignments = new_assignments
-                        
-                        # Identificador único para este intercambio
-                        move = ((assignment1.employee_id, assignment1.shift_id),
-                              (assignment2.employee_id, assignment2.shift_id))
-                        
-                        candidates.append((new_solution, move))
-        
-        # Si tenemos pocos candidatos, añadir más operaciones
-        if len(candidates) < neighborhood_size // 2:
-            # Estrategia 3: Añadir asignaciones faltantes
-            missing_assignments = []
-            
-            # Identificar turnos con asignaciones insuficientes
-            for shift in shifts:
-                day_shift_key = (shift.day, shift.name)
-                assigned = len(day_shift_employees[day_shift_key])
-                missing = max(0, shift.required_employees - assigned)
-                
-                if missing > 0:
-                    missing_assignments.append((shift, missing))
-            
-            # Intentar añadir asignaciones faltantes
-            if missing_assignments:
-                for _ in range(min(neighborhood_size // 4, len(missing_assignments))):
-                    shift, needed = random.choice(missing_assignments)
-                    day_shift_key = (shift.day, shift.name)
-                    
-                    # Encontrar empleados que podrían asignarse a este turno
-                    available_employees = [
-                        e for e in employees
-                        if e.id not in day_shift_employees[day_shift_key] and
+        # Añadir algunas asignaciones completamente nuevas
+        for shift in shifts:
+            if random.random() < mutation_rate:
+                # Verificar si hay espacio para más empleados
+                assigned = len(shift_employees.get(shift.id, set()))
+                if assigned < shift.required_employees:
+                    # Buscar empleados disponibles
+                    available = [
+                        e for e in employees 
+                        if e.id not in shift_employees.get(shift.id, set()) and
                         e.is_available(shift.day, shift.name) and
                         shift.required_skills.issubset(e.skills)
                     ]
                     
-                    if available_employees:
-                        new_employee = random.choice(available_employees)
-                        
-                        # Crear nueva solución añadiendo esta asignación
-                        new_solution = current_solution.clone()
+                    if available:
+                        selected = random.choice(available)
                         new_assignment = Assignment(
-                            employee_id=new_employee.id,
+                            employee_id=selected.id,
                             shift_id=shift.id,
-                            cost=new_employee.hourly_cost * shift.duration_hours
+                            cost=selected.hourly_cost * shift.duration_hours
                         )
-                        new_solution.add_assignment(new_assignment)
-                        
-                        # Identificador único para este movimiento
-                        move = ("add", shift.id, new_employee.id)
-                        candidates.append((new_solution, move))
-        
-        return candidates
+                        solution.add_assignment(new_assignment)
+                        shift_employees[shift.id].add(selected.id)
     
     def _calculate_fitness(self, solution: Solution, employees: List[Employee], shifts: List[Shift]) -> float:
         """Calcula la puntuación de fitness para una solución factible (solo considera costo, no violaciones)."""

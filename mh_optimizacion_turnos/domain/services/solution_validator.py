@@ -135,10 +135,12 @@ class SolutionValidator:
                 
                 if not shift.required_skills.issubset(employee.skills):
                     missing_skills = shift.required_skills - employee.skills
+                    # Convertir cada objeto Skill a su representación en cadena
+                    missing_skills_str = [skill.to_string() for skill in missing_skills]
                     result.violations += 1
                     result.violation_details.append(
                         f"El empleado {employee.name} carece de las habilidades requeridas para el turno {shift.name}: "
-                        f"Falta {', '.join(missing_skills)}"
+                        f"Falta {', '.join(missing_skills_str)}"
                     )
     
     def _validate_employee_availability(self, solution: Solution, employee_dict: Dict[int, Employee], 
