@@ -370,6 +370,8 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
             summary_lines.append(f"  • {strength.capitalize()}")
         
         summary_text = "\n".join(summary_lines)
+
+        print(summary_text)  # Imprimir en consola para revisión
         
         # Guardar resumen en texto
         text_path = f'{output_dir}/mejor_algoritmo_resumen.txt'
