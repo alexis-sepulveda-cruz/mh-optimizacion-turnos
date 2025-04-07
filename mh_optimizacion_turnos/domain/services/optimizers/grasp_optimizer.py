@@ -728,7 +728,8 @@ class GraspOptimizer(OptimizerStrategy):
                                     current_fitness = new_fitness
                                     
                                     # Actualizar registro de asignaciones
-                                    day_shift_employees[day_shift_key].remove(current_employee_id)
+                                    if current_employee_id in day_shift_employees[day_shift_key]:
+                                        day_shift_employees[day_shift_key].remove(current_employee_id)
                                     day_shift_employees[day_shift_key].add(new_employee.id)
                                     
                                     improved = True
