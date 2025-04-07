@@ -28,6 +28,49 @@ class ShiftAssignmentServiceAdapter(ShiftAssignmentServicePort):
             AlgorithmType.GRASP: GraspOptimizer()
         }
     
+    def _convert_to_algorithm_enum(self, algorithm: Union[AlgorithmType, str]) -> AlgorithmType:
+        """
+        Convierte un nombre de algoritmo (string o enum) a un enum AlgorithmType.
+        
+        Args:
+            algorithm: Algoritmo como enum AlgorithmType o string
+            
+        Returns:
+            Instancia de AlgorithmType
+            
+        Raises:
+            ValueError: Si el algoritmo no está disponible
+        """
+        if algorithm is None:
+            return None
+            
+        # Si ya es un enum, lo devolvemos tal cual
+        if isinstance(algorithm, AlgorithmType):
+            return algorithm
+            
+        # Convertir de string a enum
+        try:
+            return AlgorithmType.from_string(algorithm)
+        except ValueError:
+            available_algorithms = self.get_available_algorithms()
+            raise ValueError(f"Algoritmo no disponible: {algorithm}. "
+                           f"Opciones: {', '.join(available_algorithms)}")
+    
+    def _validate_algorithm(self, algorithm_enum: AlgorithmType) -> None:
+        """
+        Valida que el algoritmo esté disponible.
+        
+        Args:
+            algorithm_enum: Algoritmo como enum AlgorithmType
+            
+        Raises:
+            ValueError: Si el algoritmo no está disponible
+        """
+        if algorithm_enum not in self.algorithms:
+            available_algorithms = self.get_available_algorithms()
+            raise ValueError(f"Algoritmo no disponible: {algorithm_enum}. "
+                           f"Opciones: {', '.join(available_algorithms)}")
+    
     def generate_schedule(self,
                          start_date: Optional[str] = None,
                          end_date: Optional[str] = None,
@@ -37,16 +80,10 @@ class ShiftAssignmentServiceAdapter(ShiftAssignmentServicePort):
         
         Implementación del método definido en el puerto de entrada.
         """
-        # Convertir algorithm a enum si es un string
-        algorithm_enum = algorithm
-        if isinstance(algorithm, str):
-            try:
-                algorithm_enum = AlgorithmType.from_string(algorithm)
-            except ValueError:
-                # Si no es un algoritmo válido, usamos None y luego el valor predeterminado
-                algorithm_enum = None
+        # Convertir algorithm a enum si es necesario
+        algorithm_enum = self._convert_to_algorithm_enum(algorithm)
         
-        # Si se especifica un algoritmo, lo establecemos
+        # Si se especifica un algoritmo válido, lo establecemos
         if algorithm_enum and algorithm_enum in self.algorithms:
             self.set_algorithm(algorithm_enum)
         
@@ -62,69 +99,27 @@ class ShiftAssignmentServiceAdapter(ShiftAssignmentServicePort):
         )
     
     def get_available_algorithms(self) -> List[str]:
-        """Obtiene la lista de algoritmos de optimización disponibles como strings.
-        
-        Returns:
-            Lista de nombres de algoritmos disponibles
-        """
+        """Obtiene la lista de algoritmos de optimización disponibles como strings."""
         return [alg.to_string() for alg in self.algorithms.keys()]
     
     def get_available_algorithm_enums(self) -> List[AlgorithmType]:
-        """Obtiene la lista de algoritmos de optimización disponibles como enums.
-        
-        Returns:
-            Lista de enums AlgorithmType disponibles
-        """
+        """Obtiene la lista de algoritmos de optimización disponibles como enums."""
         return list(self.algorithms.keys())
     
     def set_algorithm(self, algorithm_name: Union[AlgorithmType, str]) -> None:
-        """Establece el algoritmo de optimización a utilizar.
+        """Establece el algoritmo de optimización a utilizar."""
+        # Convertir y validar el algoritmo
+        algorithm_enum = self._convert_to_algorithm_enum(algorithm_name)
+        self._validate_algorithm(algorithm_enum)
         
-        Args:
-            algorithm_name: Nombre del algoritmo como enum AlgorithmType o string
-            
-        Raises:
-            ValueError: Si el algoritmo no está disponible
-        """
-        # Convertir a enum si se proporciona como string
-        algorithm_enum = algorithm_name
-        if isinstance(algorithm_name, str):
-            try:
-                algorithm_enum = AlgorithmType.from_string(algorithm_name)
-            except ValueError:
-                raise ValueError(f"Algoritmo no disponible: {algorithm_name}. "
-                               f"Opciones: {', '.join(self.get_available_algorithms())}")
-        
-        if algorithm_enum not in self.algorithms:
-            raise ValueError(f"Algoritmo no disponible: {algorithm_enum}. "
-                           f"Opciones: {', '.join(self.get_available_algorithms())}")
-        
+        # Establecer el algoritmo en el servicio
         self.shift_optimizer_service.set_optimizer_strategy(self.algorithms[algorithm_enum])
         logger.info(f"Algoritmo establecido: {algorithm_enum.to_string()}")
     
     def get_algorithm_default_config(self, algorithm_name: Union[AlgorithmType, str]) -> Dict[str, Any]:
-        """Obtiene la configuración predeterminada para un algoritmo.
-        
-        Args:
-            algorithm_name: Nombre del algoritmo como enum AlgorithmType o string
-            
-        Returns:
-            Diccionario con la configuración predeterminada
-            
-        Raises:
-            ValueError: Si el algoritmo no está disponible
-        """
-        # Convertir a enum si se proporciona como string
-        algorithm_enum = algorithm_name
-        if isinstance(algorithm_name, str):
-            try:
-                algorithm_enum = AlgorithmType.from_string(algorithm_name)
-            except ValueError:
-                raise ValueError(f"Algoritmo no disponible: {algorithm_name}. "
-                               f"Opciones: {', '.join(self.get_available_algorithms())}")
-        
-        if algorithm_enum not in self.algorithms:
-            raise ValueError(f"Algoritmo no disponible: {algorithm_enum}. "
-                           f"Opciones: {', '.join(self.get_available_algorithms())}")
+        """Obtiene la configuración predeterminada para un algoritmo."""
+        # Convertir y validar el algoritmo
+        algorithm_enum = self._convert_to_algorithm_enum(algorithm_name)
+        self._validate_algorithm(algorithm_enum)
         
         return self.algorithms[algorithm_enum].get_default_config()

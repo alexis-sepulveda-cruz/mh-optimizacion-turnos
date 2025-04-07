@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from pathlib import Path
 
 from mh_optimizacion_turnos.application.ports.input.algorithm_visualization_port import AlgorithmVisualizationPort
@@ -16,13 +16,15 @@ logger = logging.getLogger(__name__)
 class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
     """Adaptador para visualización y comparación de algoritmos."""
     
-    def plot_comparison(self, results: Dict[str, Any], output_dir: str = "./assets/plots") -> Dict[str, str]:
+    def plot_comparison(self, results: Dict[str, Any], output_dir: str = "./assets/plots", 
+                       show_plots: bool = False) -> Dict[str, str]:
         """
         Crea gráficos de comparación entre algoritmos y los guarda en el directorio especificado.
         
         Args:
             results: Resultados de algoritmos con métricas
             output_dir: Directorio donde guardar los gráficos generados
+            show_plots: Si es True, muestra los gráficos interactivamente
             
         Returns:
             Diccionario con rutas de los archivos generados
@@ -35,7 +37,7 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
         generated_files = {}
         
         # 1. Gráfico de barras comparando tiempo, costo, fitness y cobertura
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+        fig_comparison, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
         
         # Datos para los gráficos
         avg_times = [results[algo]["avg_time"] for algo in algorithms]
@@ -74,16 +76,26 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
         ax4.set_ylabel('% Cobertura')
         ax4.tick_params(axis='x', rotation=45)
         
-        plt.tight_layout()
+        fig_comparison.tight_layout()
+        fig_comparison.suptitle('Comparación de Algoritmos', size=16, y=1.02)
         
+        # Guardar el gráfico
         comparison_plot_path = f'{output_dir}/comparacion_algoritmos.png'
-        plt.savefig(comparison_plot_path)
+        fig_comparison.savefig(comparison_plot_path)
         generated_files['comparison_plot'] = comparison_plot_path
         logger.info(f"Gráfico de comparación guardado como '{comparison_plot_path}'")
         
+        # Mostrar el gráfico si se solicita
+        if show_plots:
+            plt.figure(fig_comparison.number)
+            plt.show()
+        else:
+            plt.close(fig_comparison)  # Cerrar la figura para liberar memoria si no se muestra
+        
         # 2. Gráfico radar para comparar los algoritmos en múltiples dimensiones
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, polar=True)
+        # Crear una nueva figura para el gráfico radar para evitar interferencias
+        fig_radar = plt.figure(figsize=(10, 8))
+        ax_radar = fig_radar.add_subplot(111, polar=True)
         
         # Categorías para el gráfico radar
         categories = ['Tiempo\n(inverso)', 'Costo\n(inverso)', 'Fitness', 'Cobertura', 'Consistencia\n(inverso)']
@@ -97,19 +109,20 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
         max_time = max(avg_times) if avg_times else 1
         max_cost = max(avg_costs) if avg_costs else 1
         max_fitness = max(avg_fitness) if avg_fitness else 1
-        max_coverage = max(avg_coverage) if avg_coverage else 100
+        max_coverage = max(avg_coverage) if avg_coverage else 1
         # Evitar división por cero para consistencia
         max_std = max([(results[algo]["std_cost"] / results[algo]["avg_cost"]) 
                       if results[algo]["avg_cost"] > 0 else 0 
                       for algo in algorithms]) or 1
         
         # Inicializar gráfico radar
-        ax.set_theta_offset(np.pi / 2)  # Rotar para que comience desde arriba
-        ax.set_theta_direction(-1)      # Dirección horaria
+        ax_radar.set_theta_offset(np.pi / 2)  # Rotar para que comience desde arriba
+        ax_radar.set_theta_direction(-1)      # Dirección horaria
         
         # Establecer los límites del radar y las etiquetas
-        ax.set_ylim(0, 1)
-        plt.xticks(angles[:-1], categories)
+        ax_radar.set_ylim(0, 1)
+        ax_radar.set_xticks(angles[:-1])
+        ax_radar.set_xticklabels(categories)
         
         # Dibujar para cada algoritmo
         for i, algorithm in enumerate(algorithms):
@@ -118,32 +131,35 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
                 1 - (results[algorithm]["avg_time"] / max_time if max_time > 0 else 0),  # Tiempo (inverso)
                 1 - (results[algorithm]["avg_cost"] / max_cost if max_cost > 0 else 0),  # Costo (inverso) 
                 results[algorithm]["avg_fitness"] / max_fitness if max_fitness > 0 else 0,  # Fitness
-                results[algorithm]["avg_coverage"] / 100.0,  # Cobertura (ya está en %)
+                results[algorithm]["avg_coverage"] / max_coverage if max_coverage > 0 else 0,  # Cobertura
                 1 - ((results[algorithm]["std_cost"] / results[algorithm]["avg_cost"]) / max_std 
                     if results[algorithm]["avg_cost"] > 0 and max_std > 0 else 0)  # Consistencia (inverso)
             ]
             values += values[:1]  # Cerrar el polígono
             
             # Dibujar el polígono y agregar etiqueta
-            ax.plot(angles, values, linewidth=2, label=algorithm)
-            ax.fill(angles, values, alpha=0.25)
+            ax_radar.plot(angles, values, linewidth=2, label=algorithm)
+            ax_radar.fill(angles, values, alpha=0.25)
         
         # Añadir leyenda y título
-        plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
-        plt.title('Comparación multidimensional de algoritmos', size=15, y=1.1)
+        ax_radar.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+        fig_radar.suptitle('Comparación multidimensional de algoritmos', size=15, y=0.95)
         
-        plt.tight_layout()
+        # Ajustar el layout y guardar explícitamente
+        fig_radar.tight_layout()
         
+        # Guardar el gráfico radar
         radar_plot_path = f'{output_dir}/comparacion_radar.png'
-
-        # Mostrar el gráfico
-        plt.show()
-
-        # Guardar gráfico radar
-        plt.savefig(radar_plot_path)
-        plt.close(fig)  # Cerrar la figura para liberar memoria
+        fig_radar.savefig(radar_plot_path)
         generated_files['radar_plot'] = radar_plot_path
         logger.info(f"Gráfico radar guardado como '{radar_plot_path}'")
+        
+        # Mostrar el gráfico si se solicita
+        if show_plots:
+            plt.figure(fig_radar.number)
+            plt.show()
+        else:
+            plt.close(fig_radar)  # Cerrar la figura para liberar memoria si no se muestra
         
         # 3. Exportar resultados a CSV
         results_df = pd.DataFrame({
@@ -309,7 +325,8 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
     
     def generate_algorithm_summary(self, algorithm_name: str, stats: Dict[str, Any], 
                                   scores: Dict[str, float], rankings: Dict[str, Dict[str, float]], 
-                                  strengths: List[str], output_dir: str = "./assets/plots") -> Dict[str, str]:
+                                  strengths: List[str], output_dir: str = "./assets/plots",
+                                  show_plots: bool = False) -> Dict[str, str]:
         """
         Genera un resumen detallado del algoritmo y lo guarda en formato texto y JSON.
         
@@ -320,6 +337,7 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
             rankings: Rankings por criterio
             strengths: Lista de fortalezas principales
             output_dir: Directorio donde guardar los resultados
+            show_plots: Si es True, muestra los gráficos interactivamente
             
         Returns:
             Diccionario con rutas de los archivos generados
@@ -387,7 +405,12 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
             json.dump(json_data, f, indent=2)
             
         # 3. Generar visualización para el mejor algoritmo
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+        fig_metrics = plt.figure(figsize=(12, 10))
+        gs = fig_metrics.add_gridspec(2, 2)
+        ax1 = fig_metrics.add_subplot(gs[0, 0])
+        ax2 = fig_metrics.add_subplot(gs[0, 1])
+        ax3 = fig_metrics.add_subplot(gs[1, 0])
+        ax4 = fig_metrics.add_subplot(gs[1, 1])
         
         # Gráfico de costo
         ax1.bar([algorithm_name], [stats["avg_cost"]], yerr=[stats["std_cost"]], 
@@ -413,34 +436,33 @@ class AlgorithmVisualizationAdapter(AlgorithmVisualizationPort):
         ax4.set_title('Tiempo de Ejecución')
         ax4.set_ylabel('Tiempo (segundos)')
         
-        plt.suptitle(f'Métricas detalladas para {algorithm_name}', size=16)
-        plt.tight_layout()
-
-        # Mostrar el gráfico
-        plt.show()
+        fig_metrics.suptitle(f'Métricas detalladas para {algorithm_name}', size=16)
+        fig_metrics.tight_layout()
         
         # Guardar visualización
         metrics_plot_path = f'{output_dir}/mejor_algoritmo_metricas.png'
-        plt.savefig(metrics_plot_path)
-        plt.close(fig)  # Cerrar la figura para liberar memoria
+        fig_metrics.savefig(metrics_plot_path)
+        
+        # Mostrar el gráfico si se solicita
+        if show_plots:
+            plt.figure(fig_metrics.number)
+            plt.show()
+        else:
+            plt.close(fig_metrics)  # Cerrar la figura para liberar memoria si no se muestra
         
         # 4. Generar versión amigable para visualizar en consola o HTML
         friendly_text = f"""
 ===========================================
-  MEJOR ALGORITMO: {algorithm_name}
+  ⭐ MEJOR ALGORITMO: {algorithm_name}
 ===========================================
-
 PUNTUACIÓN GLOBAL: {scores[algorithm_name]:.4f}/1.0
-
 MÉTRICAS DE RENDIMIENTO:
   • Costo: {stats["avg_cost"]:.2f} ± {stats["std_cost"]:.2f}
   • Cobertura: {stats["avg_coverage"]:.1f}% ± {stats["std_coverage"]:.1f}%
   • Fitness: {stats["avg_fitness"]:.4f} ± {stats["std_fitness"]:.4f}
   • Tiempo: {stats["avg_time"]:.2f}s ± {stats["std_time"]:.2f}s
-
 FORTALEZAS PRINCIPALES:
   {" • ".join([s.capitalize() for s in strengths])}
-
 ===========================================
         """
         
@@ -456,3 +478,26 @@ FORTALEZAS PRINCIPALES:
             'metrics_plot': metrics_plot_path,
             'friendly_text': friendly_path
         }
+        
+    def show_plot(self, plot_path: str) -> None:
+        """
+        Muestra un gráfico guardado previamente.
+        
+        Args:
+            plot_path: Ruta al archivo de imagen del gráfico
+        """
+        try:
+            # Cargar la imagen con matplotlib
+            img = plt.imread(plot_path)
+            
+            # Crear una nueva figura y mostrar la imagen
+            plt.figure(figsize=(12, 8))
+            plt.imshow(img)
+            plt.axis('off')  # Ocultar ejes
+            plt.tight_layout()
+            plt.show()
+            
+            logger.info(f"Mostrando gráfico: {plot_path}")
+        except Exception as e:
+            logger.error(f"Error al mostrar el gráfico {plot_path}: {str(e)}")
+            print(f"No se pudo mostrar el gráfico: {str(e)}")

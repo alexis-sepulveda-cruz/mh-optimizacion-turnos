@@ -8,13 +8,19 @@ class AlgorithmVisualizationPort(ABC):
     """Puerto para visualización y comparación de algoritmos."""
     
     @abstractmethod
-    def plot_comparison(self, results: Dict[str, Any], output_dir: str = "./assets/plots") -> Dict[str, str]:
+    def plot_comparison(
+        self, 
+        results: Dict[str, Any], 
+        output_dir: str = "./assets/plots",
+        show_plots: bool = False,
+    ) -> Dict[str, str]:
         """
         Crea gráficos de comparación entre algoritmos y los guarda en el directorio especificado.
         
         Args:
             results: Resultados de algoritmos con métricas
             output_dir: Directorio donde guardar los gráficos generados
+            show_plots: Si True, muestra los gráficos en pantalla
             
         Returns:
             Diccionario con rutas de los archivos generados

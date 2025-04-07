@@ -2,6 +2,7 @@ import json
 import pandas as pd
 from typing import Dict, Any, List, Union
 import logging
+from pathlib import Path
 
 from mh_optimizacion_turnos.application.ports.output.schedule_export_port import ScheduleExportPort
 from mh_optimizacion_turnos.domain.models.solution import Solution
@@ -35,21 +36,55 @@ class ScheduleExportAdapter(ScheduleExportPort):
         """Obtiene la lista de formatos de exportación soportados."""
         return [format_enum.to_string() for format_enum in self.supported_formats.keys()]
     
+    def _convert_to_export_format_enum(self, export_format: Union[ExportFormat, str]) -> ExportFormat:
+        """
+        Convierte un formato de exportación (string o enum) a un enum ExportFormat.
+        
+        Args:
+            export_format: Formato como enum ExportFormat o string
+            
+        Returns:
+            Instancia de ExportFormat
+            
+        Raises:
+            ValueError: Si el formato no está soportado
+        """
+        # Si ya es un enum, lo devolvemos tal cual
+        if isinstance(export_format, ExportFormat):
+            return export_format
+            
+        # Convertir de string a enum
+        try:
+            return ExportFormat.from_string(export_format)
+        except ValueError:
+            supported_formats = self.get_supported_formats()
+            raise ValueError(f"Formato no soportado: {export_format}. "
+                           f"Formatos soportados: {', '.join(supported_formats)}")
+    
+    def _validate_format(self, format_enum: ExportFormat) -> None:
+        """
+        Valida que el formato esté soportado.
+        
+        Args:
+            format_enum: Formato como enum ExportFormat
+            
+        Raises:
+            ValueError: Si el formato no está soportado
+        """
+        if format_enum not in self.supported_formats:
+            supported_formats = self.get_supported_formats()
+            raise ValueError(f"Formato no soportado: {format_enum}. "
+                           f"Formatos soportados: {', '.join(supported_formats)}")
+    
     def export_solution(self, solution: Solution, export_format: Union[ExportFormat, str], output_path: str = None, **kwargs) -> str:
         """Exporta una solución de asignación de turnos a varios formatos."""
-        # Convertir a enum si se proporciona como string
-        format_enum = export_format
-        if isinstance(export_format, str):
-            try:
-                format_enum = ExportFormat.from_string(export_format)
-            except ValueError:
-                raise ValueError(f"Formato no soportado: {export_format}. "
-                               f"Formatos soportados: {self.get_supported_formats()}")
+        # Convertir a enum y validar el formato
+        format_enum = self._convert_to_export_format_enum(export_format)
+        self._validate_format(format_enum)
         
-        # Verificar si el formato está soportado
-        if format_enum not in self.supported_formats:
-            raise ValueError(f"Formato no soportado: {format_enum}. "
-                           f"Formatos soportados: {self.get_supported_formats()}")
+        # Crear directorio de salida si se especifica una ruta y no existe
+        if output_path:
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         
         # Primero creamos una representación estructurada de la solución
         structured_data = self._create_structured_data(solution)
@@ -96,22 +131,17 @@ class ScheduleExportAdapter(ScheduleExportPort):
             "constraint_violations": solution.constraint_violations
         }
     
-    def _export_to_json(self, data: Dict[str, Any], output_path: str = None) -> str:
-        """Exporta los datos a formato JSON."""
-        # Modificar la estructura de datos para convertir objetos Day a strings
-        serializable_data = self._prepare_data_for_serialization(data)
-        json_str = json.dumps(serializable_data, indent=2)
+    def _convert_enum_to_string(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convierte todos los objetos enum (como Day) a sus representaciones en string.
+        Función auxiliar reutilizable para todos los exportadores.
         
-        if output_path:
-            with open(output_path, 'w') as f:
-                f.write(json_str)
-            logger.info(f"Solución exportada a JSON: {output_path}")
-            return output_path
-        
-        return json_str
-    
-    def _prepare_data_for_serialization(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Prepara los datos para ser serializados, convirtiendo objetos Day a strings."""
+        Args:
+            data: Datos estructurados con posibles objetos enum
+            
+        Returns:
+            Datos con todos los enums convertidos a strings
+        """
         if not isinstance(data, dict):
             return data
             
@@ -124,12 +154,29 @@ class ScheduleExportAdapter(ScheduleExportPort):
                     for k, v in assignment.items():
                         if k == "day" and isinstance(v, Day):
                             processed_assignment[k] = v.to_string()
+                        elif hasattr(v, 'to_string') and callable(getattr(v, 'to_string')):
+                            # Convertir cualquier objeto con método to_string
+                            processed_assignment[k] = v.to_string()
                         else:
                             processed_assignment[k] = v
                     result[key].append(processed_assignment)
             else:
                 result[key] = value
         return result
+    
+    def _export_to_json(self, data: Dict[str, Any], output_path: str = None) -> str:
+        """Exporta los datos a formato JSON."""
+        # Convertir los enums a strings para serialización
+        serializable_data = self._convert_enum_to_string(data)
+        json_str = json.dumps(serializable_data, indent=2)
+        
+        if output_path:
+            with open(output_path, 'w') as f:
+                f.write(json_str)
+            logger.info(f"Solución exportada a JSON: {output_path}")
+            return output_path
+        
+        return json_str
     
     def _export_to_csv(self, data: Dict[str, Any], output_path: str = None) -> str:
         """Exporta los datos a formato CSV."""
@@ -138,10 +185,9 @@ class ScheduleExportAdapter(ScheduleExportPort):
         if not assignments:
             return "No hay asignaciones para exportar"
         
-        # Convertir objetos Day a strings para CSV
-        for assignment in assignments:
-            if isinstance(assignment.get("day"), Day):
-                assignment["day"] = assignment["day"].to_string()
+        # Convertir enums a strings para CSV
+        processed_data = self._convert_enum_to_string(data)
+        assignments = processed_data["assignments"]
         
         # Creamos un DataFrame con las asignaciones
         df = pd.DataFrame(assignments)
@@ -164,10 +210,9 @@ class ScheduleExportAdapter(ScheduleExportPort):
         if not assignments:
             return "No hay asignaciones para exportar"
         
-        # Convertir objetos Day a strings para Excel
-        for assignment in assignments:
-            if isinstance(assignment.get("day"), Day):
-                assignment["day"] = assignment["day"].to_string()
+        # Convertir enums a strings para Excel
+        processed_data = self._convert_enum_to_string(data)
+        assignments = processed_data["assignments"]
         
         # Creamos un DataFrame con las asignaciones
         df = pd.DataFrame(assignments)

@@ -152,8 +152,34 @@ class CLIInterfaceAdapter:
             ask_continue_callback=self.ask_continue_iteration if interactive_mode else None
         )
         
-        # Mostrar un mensaje final en consola
-        print("\nProceso completado. Revisa los resultados en la carpeta 'assets/plots'.")
-        print("¡Gracias por usar el Sistema de Asignación Óptima de Turnos de Trabajo!")
+        # Informar al usuario que se ha completado el análisis
+        print("\nAnálisis completado. Los resultados están disponibles en la carpeta 'assets/plots'.")
+        print("Se han generado gráficos de comparación y archivos con métricas detalladas.")
+        
+        # Preguntar si desea exportar la mejor solución encontrada
+        if raw_results:
+            if input("\n¿Desea exportar la mejor solución encontrada? (s/n): ").strip().lower() in ['s', 'si', 'sí', 'y', 'yes']:
+                # Encontrar el mejor resultado global basado en costo
+                best_run = min(raw_results, key=lambda r: r["cost"])
+                solution = best_run["solution"]
+                
+                # Usar el adaptador ScheduleExport para exportar la solución
+                export_adapter = self.algorithm_comparison_usecase.schedule_export_service
+                
+                print(f"\nExportando la mejor solución (encontrada con {best_run['algorithm']})...")
+                export_path = "./assets/plots/mejor_solucion.txt"
+                export_adapter.export_solution(solution, "TEXT", export_path)
+                print(f"Solución exportada en formato texto: {export_path}")
+                
+                # Exportar en otros formatos si están disponibles
+                try:
+                    json_path = "./assets/plots/mejor_solucion.json"
+                    export_adapter.export_solution(solution, "JSON", json_path)
+                    print(f"Solución exportada en formato JSON: {json_path}")
+                except Exception as e:
+                    logger.warning(f"No se pudo exportar en formato JSON: {e}")
+        
+        # Mostrar un mensaje final
+        print("\n¡Gracias por usar el Sistema de Asignación Óptima de Turnos de Trabajo!")
         
         logger.info("Ejemplo completado con éxito.")

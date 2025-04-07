@@ -236,7 +236,7 @@ class AlgorithmComparisonUseCase:
                 }
         
         # Generar visualizaciones de los resultados
-        self.visualization_service.plot_comparison(algorithm_results, output_dir)
+        self.visualization_service.plot_comparison(algorithm_results, output_dir, show_plots=True)
         
         # Encontrar el mejor algoritmo
         best_algorithm, rankings, scores = self.visualization_service.find_best_algorithm(algorithm_results)
@@ -271,6 +271,6 @@ class AlgorithmComparisonUseCase:
                 output_dir=output_dir
             )
             
-            logger.info(f"El mejor algoritmo según los criterios de optimización es: {best_algorithm}")
+            logger.info(f"⭐ El mejor algoritmo según los criterios de optimización es: {best_algorithm}")
         
         return algorithm_results, all_results
